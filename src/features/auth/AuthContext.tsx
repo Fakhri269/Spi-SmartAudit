@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           setProfile(userProfile);
 
-          // Fetch Role permissions
+          // Fetch Role permissions from Firestore
           if (userProfile.roleId) {
             const roleRef = doc(db, "roles", userProfile.roleId);
             const roleSnap = await getDoc(roleRef);
@@ -85,8 +85,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setRole(roleData);
               setPermissions(roleData.permissions || []);
             } else {
-              setRole(null);
-              setPermissions([]);
+              // Fallback: if administrator but roles not seeded yet, grant full access
+              if (userProfile.roleId === "administrator") {
+                const adminFallbackPerms = [
+                  "dashboard.view",
+                  "master.view", "master.create", "master.update", "master.delete",
+                  "user.view", "user.create", "user.update", "user.delete",
+                  "role.view", "role.create", "role.update", "role.delete",
+                  "pkpt.view", "pkpt.create", "pkpt.update", "pkpt.delete", "pkpt.approve",
+                  "assignment.view", "assignment.create", "assignment.update", "assignment.delete", "assignment.approve",
+                  "kka.view", "kka.create", "kka.update", "kka.review", "kka.approve",
+                  "finding.view", "finding.create", "finding.update", "finding.review", "finding.approve",
+                  "rtl.view", "rtl.create", "rtl.update", "rtl.verify", "rtl.close",
+                  "evidence.upload", "evidence.download", "evidence.delete",
+                  "report.view", "report.export", "report.print",
+                  "auditTrail.view",
+                  "settings.view", "settings.update",
+                ];
+                setRole({ id: "administrator", name: "Administrator", description: "Full access (fallback)", isSystemRole: true, permissions: adminFallbackPerms });
+                setPermissions(adminFallbackPerms);
+              } else {
+                setRole(null);
+                setPermissions([]);
+              }
             }
           }
 
