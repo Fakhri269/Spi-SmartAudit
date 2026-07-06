@@ -14,6 +14,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { type Cabang } from "./CabangList";
+import { useAuth } from "@/features/auth/AuthContext";
+import { logAudit } from "@/utils/audit";
 
 export interface Bagian {
   id: string;
@@ -29,6 +31,7 @@ const bagianSchema = z.object({
 type BagianFormValues = z.infer<typeof bagianSchema>;
 
 export function BagianList() {
+  const { hasPermission, user, profile } = useAuth();
   const [data, setData] = useState<Bagian[]>([]);
   const [branches, setBranches] = useState<Cabang[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,10 +81,14 @@ export function BagianList() {
   const onSubmit = async (values: BagianFormValues) => {
     try {
       if (editingId) {
+        if (!hasPermission("master.update")) throw new Error("Unauthorized");
         await updateDoc(doc(db, "departments", editingId), values);
+        await logAudit({ action: "UPDATE", collectionName: "departments", docId: editingId, changes: JSON.stringify(values), userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Data bagian berhasil diperbarui");
       } else {
-        await addDoc(collection(db, "departments"), values);
+        if (!hasPermission("master.create")) throw new Error("Unauthorized");
+        const newDoc = await addDoc(collection(db, "departments"), values);
+        await logAudit({ action: "CREATE", collectionName: "departments", docId: newDoc.id, changes: JSON.stringify(values), userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Bagian baru berhasil ditambahkan");
       }
       setIsDialogOpen(false);
@@ -104,9 +111,11 @@ export function BagianList() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!hasPermission("master.delete")) { toast.error("Anda tidak memiliki akses menghapus data"); return; }
     if (window.confirm("Apakah Anda yakin ingin menghapus data ini?")) {
       try {
         await deleteDoc(doc(db, "departments", id));
+        await logAudit({ action: "DELETE", collectionName: "departments", docId: id, userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Data bagian berhasil dihapus");
         fetchData();
       } catch (error) {
@@ -137,12 +146,16 @@ export function BagianList() {
         const bagian = row.original;
         return (
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => handleEdit(bagian)}>
-              <Edit className="h-4 w-4 text-blue-600" />
-            </Button>
-            <Button variant="outline" size="icon" onClick={() => handleDelete(bagian.id)}>
-              <Trash2 className="h-4 w-4 text-red-600" />
-            </Button>
+            {hasPermission("master.update") && (
+              <Button variant="outline" size="icon" onClick={() => handleEdit(bagian)}>
+                <Edit className="h-4 w-4 text-blue-600" />
+              </Button>
+            )}
+            {hasPermission("master.delete") && (
+              <Button variant="outline" size="icon" onClick={() => handleDelete(bagian.id)}>
+                <Trash2 className="h-4 w-4 text-red-600" />
+              </Button>
+            )}
           </div>
         );
       },
@@ -153,57 +166,59 @@ export function BagianList() {
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <h3 className="text-lg font-medium">Data Bagian</h3>
-        <Dialog open={isDialogOpen} onOpenChange={(open) => {
-          setIsDialogOpen(open);
-          if (!open) {
-            form.reset();
-            setEditingId(null);
-          }
-        }}>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="mr-2 h-4 w-4" /> Tambah Bagian
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingId ? "Edit Bagian" : "Tambah Bagian Baru"}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={form.handleSubmit(onSubmit)} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <Label htmlFor="name">Nama Bagian</Label>
-                <Input id="name" {...form.register("name")} placeholder="Cth: Bagian Keuangan" />
-                {form.formState.errors.name && (
-                  <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>
-                )}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <Label htmlFor="branchId">Cabang</Label>
-                <Select 
-                  onValueChange={(val) => form.setValue("branchId", val ?? "")} 
-                  defaultValue={form.getValues("branchId") ?? ""}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih Cabang" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {branches.map(b => (
-                      <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {form.formState.errors.branchId && (
-                  <p className="text-sm text-red-500">{form.formState.errors.branchId.message}</p>
-                )}
-              </div>
-              <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 16 }}>
-                <Button type="submit" disabled={form.formState.isSubmitting}>
-                  {form.formState.isSubmitting ? "Menyimpan..." : "Simpan"}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        {hasPermission("master.create") && (
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) {
+              form.reset();
+              setEditingId(null);
+            }
+          }}>
+            <DialogTrigger asChild>
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="mr-2 h-4 w-4" /> Tambah Bagian
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingId ? "Edit Bagian" : "Tambah Bagian Baru"}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={form.handleSubmit(onSubmit)} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <Label htmlFor="name">Nama Bagian</Label>
+                  <Input id="name" {...form.register("name")} placeholder="Cth: Bagian Keuangan" />
+                  {form.formState.errors.name && (
+                    <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>
+                  )}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <Label htmlFor="branchId">Cabang</Label>
+                  <Select 
+                    onValueChange={(val) => form.setValue("branchId", val ?? "")} 
+                    defaultValue={form.getValues("branchId") ?? ""}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih Cabang" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {branches.map(b => (
+                        <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {form.formState.errors.branchId && (
+                    <p className="text-sm text-red-500">{form.formState.errors.branchId.message}</p>
+                  )}
+                </div>
+                <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 16 }}>
+                  <Button type="submit" disabled={form.formState.isSubmitting}>
+                    {form.formState.isSubmitting ? "Menyimpan..." : "Simpan"}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {loading ? (

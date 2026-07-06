@@ -1,16 +1,25 @@
-import { Outlet, NavLink } from "react-router-dom";
+import { Outlet, NavLink, Navigate } from "react-router-dom";
 import { GitBranch, Layers, Users, ShieldCheck, FileCode, AlertOctagon } from "lucide-react";
+import { useAuth } from "../auth/AuthContext";
 
-const navItems = [
-  { name: "Cabang", path: "/master-data/cabang", icon: GitBranch },
-  { name: "Bagian", path: "/master-data/bagian", icon: Layers },
-  { name: "Pegawai", path: "/master-data/pegawai", icon: Users },
-  { name: "Auditor", path: "/master-data/auditor", icon: ShieldCheck },
-  { name: "SOP & Peraturan", path: "/master-data/sop", icon: FileCode },
-  { name: "Risiko", path: "/master-data/risiko", icon: AlertOctagon },
+const ALL_NAV_ITEMS = [
+  { name: "Cabang", path: "/master-data/cabang", icon: GitBranch, permission: "master.view" },
+  { name: "Bagian", path: "/master-data/bagian", icon: Layers, permission: "master.view" },
+  { name: "Pegawai", path: "/master-data/pegawai", icon: Users, permission: "master.view" },
+  { name: "Auditor", path: "/master-data/auditor", icon: ShieldCheck, permission: "master.view" },
+  { name: "SOP & Peraturan", path: "/master-data/sop", icon: FileCode, permission: "master.view" },
+  { name: "Risiko", path: "/master-data/risiko", icon: AlertOctagon, permission: "master.view" },
 ];
 
 export function MasterDataLayout() {
+  const { hasPermission } = useAuth();
+  const navItems = ALL_NAV_ITEMS.filter((item) => hasPermission(item.permission));
+
+  // If no items available at all, redirect (shouldn't happen because PermissionRoute already guards)
+  if (navItems.length === 0) {
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <div className="fade-in-up" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {/* Page Header */}

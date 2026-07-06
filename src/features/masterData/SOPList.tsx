@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Edit, Trash2, FileCode, ExternalLink } from "lucide-react";
+import { useAuth } from "@/features/auth/AuthContext";
+import { logAudit } from "@/utils/audit";
 
 interface SOP {
   id: string;
@@ -21,6 +23,7 @@ interface SOP {
 }
 
 export function SOPList() {
+  const { hasPermission, user, profile } = useAuth();
   const [data, setData] = useState<SOP[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -54,20 +57,30 @@ export function SOPList() {
     try {
       const payload = { kode, judul, kategori, status, tahun };
       if (isEdit) {
+        if (!hasPermission("master.update")) throw new Error("Unauthorized");
         await updateDoc(doc(db, "sop", currentId), { ...payload, updatedAt: serverTimestamp() });
+        await logAudit({ action: "UPDATE", collectionName: "sop", docId: currentId, changes: JSON.stringify(payload), userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("SOP/Peraturan diperbarui");
       } else {
-        await addDoc(collection(db, "sop"), { ...payload, createdAt: serverTimestamp() });
+        if (!hasPermission("master.create")) throw new Error("Unauthorized");
+        const newDoc = await addDoc(collection(db, "sop"), { ...payload, createdAt: serverTimestamp() });
+        await logAudit({ action: "CREATE", collectionName: "sop", docId: newDoc.id, changes: JSON.stringify(payload), userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("SOP/Peraturan baru ditambahkan");
       }
       setOpen(false); fetchData();
-    } catch { toast.error("Gagal menyimpan data"); }
+    } catch (error: any) { toast.error("Gagal menyimpan data: " + error.message); }
     finally { setIsSubmitting(false); }
   };
 
   const handleDelete = async (id: string) => {
+    if (!hasPermission("master.delete")) { toast.error("Anda tidak memiliki akses menghapus data"); return; }
     if (confirm("Hapus data ini?")) {
-      try { await deleteDoc(doc(db, "sop", id)); toast.success("Data dihapus"); fetchData(); }
+      try { 
+        await deleteDoc(doc(db, "sop", id)); 
+        await logAudit({ action: "DELETE", collectionName: "sop", docId: id, userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
+        toast.success("Data dihapus"); 
+        fetchData(); 
+      }
       catch { toast.error("Gagal menghapus"); }
     }
   };
@@ -100,8 +113,12 @@ export function SOPList() {
       id: "actions", header: "Aksi",
       cell: ({ row }) => (
         <div style={{ display: "flex", gap: 6 }}>
-          <Button variant="outline" size="sm" onClick={() => handleOpenEdit(row.original)} style={{ width: 32, height: 32, padding: 0, borderColor: "#BAE6FD" }}><Edit size={13} style={{ color: "#0369A1" }} /></Button>
-          <Button variant="outline" size="sm" onClick={() => handleDelete(row.original.id)} style={{ width: 32, height: 32, padding: 0, borderColor: "#FECACA" }}><Trash2 size={13} style={{ color: "#EF4444" }} /></Button>
+          {hasPermission("master.update") && (
+            <Button variant="outline" size="sm" onClick={() => handleOpenEdit(row.original)} style={{ width: 32, height: 32, padding: 0, borderColor: "#BAE6FD" }}><Edit size={13} style={{ color: "#0369A1" }} /></Button>
+          )}
+          {hasPermission("master.delete") && (
+            <Button variant="outline" size="sm" onClick={() => handleDelete(row.original.id)} style={{ width: 32, height: 32, padding: 0, borderColor: "#FECACA" }}><Trash2 size={13} style={{ color: "#EF4444" }} /></Button>
+          )}
         </div>
       ),
     },
@@ -117,9 +134,11 @@ export function SOPList() {
           </div>
           <p style={{ fontSize: 13, color: "#94A3B8", margin: 0 }}>Kelola dokumen SOP, peraturan, dan Surat Keputusan.</p>
         </div>
-        <Button onClick={handleOpenAdd} style={{ background: "linear-gradient(135deg, #0C4A6E, #0369A1)", color: "white", border: "none", display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
-          <Plus size={15} /> Tambah Dokumen
-        </Button>
+        {hasPermission("master.create") && (
+          <Button onClick={handleOpenAdd} style={{ background: "linear-gradient(135deg, #0C4A6E, #0369A1)", color: "white", border: "none", display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
+            <Plus size={15} /> Tambah Dokumen
+          </Button>
+        )}
       </div>
 
       {loading ? (

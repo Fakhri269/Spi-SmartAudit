@@ -4,6 +4,7 @@ import { Dashboard } from "./features/dashboard/Dashboard";
 import { Login } from "./features/auth/Login";
 import { AuthProvider } from "./features/auth/AuthContext";
 import { ProtectedRoute } from "./features/auth/ProtectedRoute";
+import { PermissionRoute } from "./features/auth/PermissionRoute";
 import { MasterDataLayout } from "./features/masterData/MasterDataLayout";
 import { CabangList } from "./features/masterData/CabangList";
 import { BagianList } from "./features/masterData/BagianList";
@@ -28,12 +29,18 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
 
-            {/* Protected Routes */}
+            {/* All routes require authentication */}
             <Route path="/" element={<ProtectedRoute />}>
               <Route element={<DashboardLayout />}>
-                <Route index element={<Dashboard />} />
-                
-                <Route path="master-data" element={<MasterDataLayout />}>
+
+                {/* Dashboard */}
+                <Route element={<PermissionRoute permission="dashboard.view" />}>
+                  <Route index element={<Dashboard />} />
+                </Route>
+
+                {/* Master Data — requires master.view */}
+                <Route element={<PermissionRoute permission="master.view" />}>
+                  <Route path="master-data" element={<MasterDataLayout />}>
                     <Route index element={<Navigate to="cabang" replace />} />
                     <Route path="cabang" element={<CabangList />} />
                     <Route path="bagian" element={<BagianList />} />
@@ -41,17 +48,40 @@ function App() {
                     <Route path="auditor" element={<AuditorList />} />
                     <Route path="sop" element={<SOPList />} />
                     <Route path="risiko" element={<RisikoList />} />
+                  </Route>
                 </Route>
 
-                <Route path="pkpt" element={<PKPTList />} />
-                <Route path="surat-tugas" element={<SuratTugasList />} />
-                <Route path="kka" element={<KKAList />} />
-                <Route path="temuan" element={<TemuanList />} />
-                <Route path="laporan" element={<LaporanAudit />} />
+                {/* PKPT */}
+                <Route element={<PermissionRoute permission="pkpt.view" />}>
+                  <Route path="pkpt" element={<PKPTList />} />
+                </Route>
+
+                {/* Surat Tugas */}
+                <Route element={<PermissionRoute permission="assignment.view" />}>
+                  <Route path="surat-tugas" element={<SuratTugasList />} />
+                </Route>
+
+                {/* KKA */}
+                <Route element={<PermissionRoute permission="kka.view" />}>
+                  <Route path="kka" element={<KKAList />} />
+                </Route>
+
+                {/* Temuan */}
+                <Route element={<PermissionRoute permission="finding.view" />}>
+                  <Route path="temuan" element={<TemuanList />} />
+                </Route>
+
+                {/* Laporan */}
+                <Route element={<PermissionRoute permission="report.view" />}>
+                  <Route path="laporan" element={<LaporanAudit />} />
+                </Route>
+
+                {/* Settings — everyone can access (personal profile) */}
                 <Route path="settings" element={<Pengaturan />} />
+
               </Route>
             </Route>
-            
+
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
