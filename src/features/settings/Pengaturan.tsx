@@ -180,6 +180,7 @@ export function Pengaturan() {
                     Jadikan Saya Administrator
                   </Button>
                 </div>
+              </div>
             </div>
           )}
 
