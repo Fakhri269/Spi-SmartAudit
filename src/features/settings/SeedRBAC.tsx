@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { collection, doc, setDoc, getDocs } from "firebase/firestore";
 import { db } from "@/config/firebase";
+import { useAuth } from "@/features/auth/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Database, CheckCircle, AlertTriangle, RefreshCw, Shield } from "lucide-react";
+import { Database, CheckCircle, AlertTriangle, RefreshCw, Shield, UserCog } from "lucide-react";
 
 export const ALL_PERMISSIONS: { group: string; perms: { key: string; label: string }[] }[] = [
   {
@@ -245,7 +246,9 @@ const predefinedRoles = [
 ];
 
 export function SeedRBAC() {
+  const { user, profile } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const handleSeed = async () => {
@@ -277,6 +280,27 @@ export function SeedRBAC() {
     setLoading(false);
   };
 
+  const handleMakeMeAdmin = async () => {
+    if (!user) {
+      setResult({ success: false, message: "Error: Anda belum login." });
+      return;
+    }
+    setAdminLoading(true);
+    setResult(null);
+    try {
+      const userRef = doc(db, "users", user.uid);
+      await setDoc(userRef, { 
+        ...profile, // Keep existing profile data
+        roleId: "administrator" 
+      }, { merge: true });
+      setResult({ success: true, message: "Berhasil! Akun Anda telah diset sebagai Administrator. Silakan refresh halaman." });
+    } catch (error: any) {
+      console.error(error);
+      setResult({ success: false, message: "Error: " + error.message });
+    }
+    setAdminLoading(false);
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div>
@@ -302,10 +326,10 @@ export function SeedRBAC() {
         ))}
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
         <Button
           onClick={handleSeed}
-          disabled={loading}
+          disabled={loading || adminLoading}
           style={{
             background: loading ? "#94A3B8" : "linear-gradient(135deg, #0C4A6E, #0369A1)",
             color: "white",
@@ -321,8 +345,26 @@ export function SeedRBAC() {
           {loading ? "Memproses..." : "Inisialisasi Role Default"}
         </Button>
 
+        <Button
+          onClick={handleMakeMeAdmin}
+          disabled={loading || adminLoading}
+          style={{
+            background: adminLoading ? "#94A3B8" : "#F59E0B",
+            color: "white",
+            border: "none",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontWeight: 600,
+            padding: "10px 20px",
+          }}
+        >
+          {adminLoading ? <RefreshCw size={14} style={{ animation: "spin 1s linear infinite" }} /> : <UserCog size={14} />}
+          {adminLoading ? "Memproses..." : "Jadikan Saya Administrator"}
+        </Button>
+
         {result && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 500, color: result.success ? "#059669" : "#DC2626" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 500, color: result.success ? "#059669" : "#DC2626", width: "100%" }}>
             {result.success ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
             {result.message}
           </div>
