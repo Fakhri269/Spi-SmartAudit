@@ -157,10 +157,29 @@ export function Pengaturan() {
                   <Label style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>Role / Jabatan</Label>
                   <Input value={role?.name || profile?.roleId || "Viewer"} disabled style={{ marginTop: 6, background: "#F8FAFC", color: "#94A3B8" }} />
                 </div>
-                <Button onClick={handleSaveProfil} style={{ alignSelf: "flex-start", background: "linear-gradient(135deg, #0C4A6E, #0369A1)", color: "white", border: "none", display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
-                  <Save size={14} /> Simpan Perubahan
-                </Button>
-              </div>
+                <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
+                  <Button onClick={handleSaveProfil} style={{ background: "linear-gradient(135deg, #0C4A6E, #0369A1)", color: "white", border: "none", display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
+                    <Save size={14} /> Simpan Perubahan
+                  </Button>
+                  
+                  {/* Emergency Developer Backdoor */}
+                  <Button 
+                    onClick={async () => {
+                      try {
+                        const { doc, setDoc } = await import("firebase/firestore");
+                        const { db } = await import("@/config/firebase");
+                        if (!profile?.uid) return;
+                        await setDoc(doc(db, "users", profile.uid), { ...profile, roleId: "administrator" }, { merge: true });
+                        toast.success("Berhasil diset sebagai Administrator! Silakan refresh (F5) browser Anda.");
+                      } catch (e: any) {
+                        toast.error(e.message);
+                      }
+                    }} 
+                    style={{ background: "#F59E0B", color: "white", border: "none", fontWeight: 600 }}
+                  >
+                    Jadikan Saya Administrator
+                  </Button>
+                </div>
             </div>
           )}
 
