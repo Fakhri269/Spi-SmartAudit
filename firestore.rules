@@ -1,0 +1,98 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function getRolePermissions() {
+      let user = getUserData();
+      return user.roleId != null ? get(/databases/$(database)/documents/roles/$(user.roleId)).data.permissions : [];
+    }
+
+    function hasPermission(perm) {
+      return isAuthenticated() && (perm in getRolePermissions());
+    }
+
+    // Role Collection
+    match /roles/{roleId} {
+      allow read: if isAuthenticated();
+      // Temporarily allowing any authenticated user to create roles for initial seeding
+      allow create, update, delete: if isAuthenticated(); 
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow update: if isAuthenticated() && (request.auth.uid == userId || hasPermission("user.update"));
+      // Temporarily allowing any authenticated user to create users/roles for initial seeding
+      allow create, delete: if isAuthenticated();
+    }
+
+    // Audit Trail
+    match /audit_trail/{logId} {
+      allow read: if hasPermission("auditTrail.view") || hasPermission("dashboard.view");
+      allow create: if isAuthenticated(); // Anyone can create a log, no one can update/delete
+      allow update, delete: if false;
+    }
+
+    // Master Data
+    match /branches/{docId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if hasPermission("master.update") || hasPermission("master.create") || hasPermission("master.delete");
+    }
+    match /bagian/{docId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if hasPermission("master.update") || hasPermission("master.create") || hasPermission("master.delete");
+    }
+    match /pegawai/{docId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if hasPermission("master.update") || hasPermission("master.create") || hasPermission("master.delete");
+    }
+    match /auditors/{docId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if hasPermission("master.update") || hasPermission("master.create") || hasPermission("master.delete");
+    }
+    match /sop/{docId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if hasPermission("master.update") || hasPermission("master.create") || hasPermission("master.delete");
+    }
+    match /risiko/{docId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if hasPermission("master.update") || hasPermission("master.create") || hasPermission("master.delete");
+    }
+
+    // Audit Modules
+    match /kka/{kkaId} {
+      allow read: if isAuthenticated();
+      allow create, update: if hasPermission("kka.create") || hasPermission("kka.update") || hasPermission("kka.review") || hasPermission("kka.approve");
+      allow delete: if hasPermission("kka.delete");
+    }
+
+    match /temuan/{findingId} {
+      allow read: if isAuthenticated();
+      allow create, update: if hasPermission("finding.create") || hasPermission("finding.update") || hasPermission("finding.review") || hasPermission("finding.approve") || hasPermission("rtl.create") || hasPermission("rtl.verify") || hasPermission("rtl.close");
+      allow delete: if hasPermission("finding.delete");
+    }
+
+    match /pkpt/{pkptId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if hasPermission("pkpt.create") || hasPermission("pkpt.update") || hasPermission("pkpt.delete") || hasPermission("pkpt.approve");
+    }
+
+    match /surat_tugas/{suratId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if hasPermission("assignment.create") || hasPermission("assignment.update") || hasPermission("assignment.delete");
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

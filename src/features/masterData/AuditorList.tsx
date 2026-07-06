@@ -1,0 +1,161 @@
+import { useState, useEffect } from "react";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import { db } from "@/config/firebase";
+import { toast } from "sonner";
+import { DataTable } from "@/components/ui/data-table";
+import { type ColumnDef } from "@tanstack/react-table";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Edit, Trash2, ShieldCheck, Award } from "lucide-react";
+
+interface Auditor {
+  id: string;
+  nip: string;
+  name: string;
+  sertifikasi: string;
+  level: "Junior" | "Senior" | "Lead";
+}
+
+export function AuditorList() {
+  const [data, setData] = useState<Auditor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [isEdit, setIsEdit] = useState(false);
+  const [currentId, setCurrentId] = useState("");
+  const [nip, setNip] = useState("");
+  const [name, setName] = useState("");
+  const [sertifikasi, setSertifikasi] = useState("");
+  const [level, setLevel] = useState<Auditor["level"]>("Junior");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const snap = await getDocs(collection(db, "auditors"));
+      setData(snap.docs.map(d => ({ id: d.id, ...d.data() } as Auditor)));
+    } catch { toast.error("Gagal memuat data auditor"); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const handleOpenAdd = () => { setIsEdit(false); setCurrentId(""); setNip(""); setName(""); setSertifikasi(""); setLevel("Junior"); setOpen(true); };
+  const handleOpenEdit = (a: Auditor) => { setIsEdit(true); setCurrentId(a.id); setNip(a.nip); setName(a.name); setSertifikasi(a.sertifikasi); setLevel(a.level); setOpen(true); };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !nip) { toast.error("NIP dan Nama wajib diisi"); return; }
+    setIsSubmitting(true);
+    try {
+      const payload = { nip, name, sertifikasi, level };
+      if (isEdit) {
+        await updateDoc(doc(db, "auditors", currentId), { ...payload, updatedAt: serverTimestamp() });
+        toast.success("Data auditor diperbarui");
+      } else {
+        await addDoc(collection(db, "auditors"), { ...payload, createdAt: serverTimestamp() });
+        toast.success("Auditor baru ditambahkan");
+      }
+      setOpen(false); fetchData();
+    } catch { toast.error("Gagal menyimpan data"); }
+    finally { setIsSubmitting(false); }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Hapus data auditor ini?")) {
+      try { await deleteDoc(doc(db, "auditors", id)); toast.success("Auditor dihapus"); fetchData(); }
+      catch { toast.error("Gagal menghapus"); }
+    }
+  };
+
+  const levelColors: Record<Auditor["level"], { color: string; bg: string }> = {
+    Lead: { color: "#7C3AED", bg: "#EDE9FE" },
+    Senior: { color: "#0369A1", bg: "#E0F2FE" },
+    Junior: { color: "#64748B", bg: "#F1F5F9" },
+  };
+
+  const columns: ColumnDef<Auditor>[] = [
+    { accessorKey: "nip", header: "NIP", cell: ({ row }) => <span style={{ fontFamily: "monospace", fontSize: 13, color: "#0369A1", fontWeight: 600 }}>{row.getValue("nip")}</span> },
+    { accessorKey: "name", header: "Nama Auditor", cell: ({ row }) => <div style={{ display: "flex", alignItems: "center", gap: 8 }}><ShieldCheck size={14} style={{ color: "#0369A1" }} /><span style={{ fontWeight: 600, color: "#0F172A" }}>{row.getValue("name")}</span></div> },
+    { accessorKey: "sertifikasi", header: "Sertifikasi", cell: ({ row }) => <div style={{ display: "flex", alignItems: "center", gap: 6 }}><Award size={13} style={{ color: "#D97706" }} /><span style={{ fontSize: 13 }}>{row.getValue("sertifikasi") || "-"}</span></div> },
+    {
+      accessorKey: "level", header: "Level",
+      cell: ({ row }) => {
+        const lv = row.getValue("level") as Auditor["level"];
+        const c = levelColors[lv] || levelColors.Junior;
+        return <span style={{ padding: "3px 10px", borderRadius: 99, fontSize: 11.5, fontWeight: 700, color: c.color, background: c.bg }}>{lv}</span>;
+      }
+    },
+    {
+      id: "actions", header: "Aksi",
+      cell: ({ row }) => (
+        <div style={{ display: "flex", gap: 6 }}>
+          <Button variant="outline" size="sm" onClick={() => handleOpenEdit(row.original)} style={{ width: 32, height: 32, padding: 0, borderColor: "#BAE6FD" }}><Edit size={13} style={{ color: "#0369A1" }} /></Button>
+          <Button variant="outline" size="sm" onClick={() => handleDelete(row.original.id)} style={{ width: 32, height: 32, padding: 0, borderColor: "#FECACA" }}><Trash2 size={13} style={{ color: "#EF4444" }} /></Button>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <ShieldCheck size={18} style={{ color: "#0369A1" }} />
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", margin: 0 }}>Data Auditor</h3>
+          </div>
+          <p style={{ fontSize: 13, color: "#94A3B8", margin: 0 }}>Kelola data tim auditor internal SPI.</p>
+        </div>
+        <Button onClick={handleOpenAdd} style={{ background: "linear-gradient(135deg, #0C4A6E, #0369A1)", color: "white", border: "none", display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
+          <Plus size={15} /> Tambah Auditor
+        </Button>
+      </div>
+
+      {loading ? (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 48, gap: 12 }}>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: "#0369A1" }} />
+          <p style={{ color: "#94A3B8", fontSize: 13 }}>Memuat data...</p>
+        </div>
+      ) : <DataTable columns={columns} data={data} searchKey="name" />}
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent style={{ maxWidth: 440 }}>
+          <DialogHeader>
+            <DialogTitle>{isEdit ? "Edit Auditor" : "Tambah Auditor Baru"}</DialogTitle>
+            <DialogDescription>Isi data auditor internal SPI.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 8 }}>
+            {[
+              { id: "nip", label: "NIP", val: nip, set: setNip, placeholder: "Nomor Induk Pegawai" },
+              { id: "name", label: "Nama Lengkap", val: name, set: setName, placeholder: "Nama auditor" },
+              { id: "sertifikasi", label: "Sertifikasi", val: sertifikasi, set: setSertifikasi, placeholder: "Cth: QIA, CIA, CISA" },
+            ].map(f => (
+              <div key={f.id} style={{ display: "grid", gridTemplateColumns: "110px 1fr", alignItems: "center", gap: 12 }}>
+                <Label htmlFor={f.id} style={{ textAlign: "right", fontSize: 13 }}>{f.label}</Label>
+                <Input id={f.id} value={f.val} onChange={e => f.set(e.target.value)} placeholder={f.placeholder} />
+              </div>
+            ))}
+            <div style={{ display: "grid", gridTemplateColumns: "110px 1fr", alignItems: "center", gap: 12 }}>
+              <Label style={{ textAlign: "right", fontSize: 13 }}>Level</Label>
+              <Select value={level} onValueChange={v => setLevel(v as Auditor["level"])}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Junior">Junior</SelectItem>
+                  <SelectItem value="Senior">Senior</SelectItem>
+                  <SelectItem value="Lead">Lead</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter style={{ marginTop: 8 }}>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Batal</Button>
+              <Button type="submit" disabled={isSubmitting} style={{ background: "#0369A1", color: "white" }}>{isSubmitting ? "Menyimpan..." : "Simpan"}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
