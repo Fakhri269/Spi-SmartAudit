@@ -2,73 +2,148 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
+    // ── Helper: cek user sudah login ─────────────────────────────────────
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    // ── Helper: cek apakah user adalah pemilik dokumen ───────────────────
+    function isOwner(userId) {
+      return request.auth.uid == userId;
     }
 
+    // ── Helper: baca roleId user dari koleksi users ───────────────────────
+    // CATATAN: Fungsi ini HANYA dipakai oleh koleksi SELAIN /users agar tidak
+    // terjadi circular dependency.
+    function getUserRoleId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roleId;
+    }
+
+    // ── Helper: baca permissions dari koleksi roles ───────────────────────
     function getRolePermissions() {
-      let user = getUserData();
-      return user.roleId != null ? get(/databases/$(database)/documents/roles/$(user.roleId)).data.permissions : [];
+      let roleId = getUserRoleId();
+      return roleId != null
+        ? get(/databases/$(database)/documents/roles/$(roleId)).data.permissions
+        : [];
     }
 
+    // ── Helper: cek permission untuk koleksi NON-users ───────────────────
     function hasPermission(perm) {
       return isAuthenticated() && (perm in getRolePermissions());
     }
 
-    // Role Collection
+    // ─────────────────────────────────────────────────────────────────────
+    // ROLES Collection
+    // Semua user yang login bisa baca (diperlukan saat load permissions).
+    // Hanya admin yang bisa ubah (via UI dengan permission role.create/update).
+    // ─────────────────────────────────────────────────────────────────────
     match /roles/{roleId} {
       allow read: if isAuthenticated();
-      // Temporarily allowing any authenticated user to create roles for initial seeding
-      allow create, update, delete: if isAuthenticated(); 
+      allow create, update, delete: if hasPermission("role.create") || hasPermission("role.update") || hasPermission("role.delete");
     }
 
-    // Users Collection
+    // ─────────────────────────────────────────────────────────────────────
+    // USERS Collection
+    // READ: user bisa baca dokumen milik sendiri.
+    //       user dengan permission user.view bisa baca semua.
+    // UPDATE: user bisa update dokumen milik sendiri (ganti displayName, dll).
+    //         user dengan permission user.update bisa update semua.
+    // CREATE: hanya saat pendaftaran awal (uid == doc id).
+    // DELETE: hanya user dengan permission user.delete.
+    //
+    // PENTING: Tidak menggunakan hasPermission() di sini untuk menghindari
+    // circular read (users → roles → users).
+    // ─────────────────────────────────────────────────────────────────────
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow update: if isAuthenticated() && (request.auth.uid == userId || hasPermission("user.update"));
-      // Temporarily allowing any authenticated user to create users/roles for initial seeding
-      allow create, delete: if isAuthenticated();
+      // Siapa pun yang login bisa baca dokumen user sendiri
+      allow read: if isAuthenticated() && (
+        isOwner(userId)
+        // Admin/superuser: baca semua (cek via roles langsung, bukan via users lagi)
+        || (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && get(/databases/$(database)/documents/roles/$(
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roleId
+             )).data.permissions.hasAny(["user.view", "role.view", "auditTrail.view"])
+        )
+      );
+
+      // User update dokumen sendiri (ganti displayName, dll)
+      // ATAU admin dengan permission user.update
+      allow update: if isAuthenticated() && (
+        isOwner(userId)
+        || (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && get(/databases/$(database)/documents/roles/$(
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roleId
+             )).data.permissions.hasAny(["user.update"])
+        )
+      );
+
+      // Create: hanya dokumen milik sendiri (registrasi awal)
+      allow create: if isAuthenticated() && isOwner(userId);
+
+      // Delete: hanya admin
+      allow delete: if hasPermission("user.delete");
     }
 
-    // Audit Trail
+    // ─────────────────────────────────────────────────────────────────────
+    // AUDIT TRAIL
+    // ─────────────────────────────────────────────────────────────────────
     match /audit_trail/{logId} {
       allow read: if hasPermission("auditTrail.view") || hasPermission("dashboard.view");
-      allow create: if isAuthenticated(); // Anyone can create a log, no one can update/delete
+      allow create: if isAuthenticated();
       allow update, delete: if false;
     }
 
-    // Master Data
+    // ─────────────────────────────────────────────────────────────────────
+    // MASTER DATA
+    // ─────────────────────────────────────────────────────────────────────
     match /branches/{docId} {
       allow read: if isAuthenticated();
-      allow create, update, delete: if hasPermission("master.update") || hasPermission("master.create") || hasPermission("master.delete");
-    }
-    match /bagian/{docId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if hasPermission("master.update") || hasPermission("master.create") || hasPermission("master.delete");
-    }
-    match /pegawai/{docId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if hasPermission("master.update") || hasPermission("master.create") || hasPermission("master.delete");
-    }
-    match /auditors/{docId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if hasPermission("master.update") || hasPermission("master.create") || hasPermission("master.delete");
-    }
-    match /sop/{docId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if hasPermission("master.update") || hasPermission("master.create") || hasPermission("master.delete");
-    }
-    match /risiko/{docId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if hasPermission("master.update") || hasPermission("master.create") || hasPermission("master.delete");
+      allow create: if hasPermission("master.create");
+      allow update: if hasPermission("master.update");
+      allow delete: if hasPermission("master.delete");
     }
 
-    // Audit Modules
+    match /departments/{docId} {
+      allow read: if isAuthenticated();
+      allow create: if hasPermission("master.create");
+      allow update: if hasPermission("master.update");
+      allow delete: if hasPermission("master.delete");
+    }
+
+    match /pegawai/{docId} {
+      allow read: if isAuthenticated();
+      allow create: if hasPermission("master.create");
+      allow update: if hasPermission("master.update");
+      allow delete: if hasPermission("master.delete");
+    }
+
+    match /auditors/{docId} {
+      allow read: if isAuthenticated();
+      allow create: if hasPermission("master.create");
+      allow update: if hasPermission("master.update");
+      allow delete: if hasPermission("master.delete");
+    }
+
+    match /sop/{docId} {
+      allow read: if isAuthenticated();
+      allow create: if hasPermission("master.create");
+      allow update: if hasPermission("master.update");
+      allow delete: if hasPermission("master.delete");
+    }
+
+    match /risiko/{docId} {
+      allow read: if isAuthenticated();
+      allow create: if hasPermission("master.create");
+      allow update: if hasPermission("master.update");
+      allow delete: if hasPermission("master.delete");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // AUDIT MODULES
+    // ─────────────────────────────────────────────────────────────────────
     match /kka/{kkaId} {
       allow read: if isAuthenticated();
       allow create, update: if hasPermission("kka.create") || hasPermission("kka.update") || hasPermission("kka.review") || hasPermission("kka.approve");
@@ -91,6 +166,9 @@ service cloud.firestore {
       allow create, update, delete: if hasPermission("assignment.create") || hasPermission("assignment.update") || hasPermission("assignment.delete");
     }
 
+    // ─────────────────────────────────────────────────────────────────────
+    // CATCH-ALL: tolak semua akses yang tidak terdefinisi di atas
+    // ─────────────────────────────────────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;
     }
