@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/features/auth/AuthContext";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -9,11 +9,13 @@ import { RoleList } from "./RoleList";
 import { UserList } from "./UserList";
 import { AuditTrailList } from "./AuditTrailList";
 import { SeedRBAC } from "./SeedRBAC";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/config/firebase";
 
 type Tab = "profil" | "notifikasi" | "keamanan" | "pengguna" | "role" | "audit" | "sistem";
 
 export function Pengaturan() {
-  const { profile, hasPermission, role } = useAuth();
+  const { profile, hasPermission, role, refreshProfile, user } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("profil");
   const [displayName, setDisplayName] = useState(profile?.displayName || "");
   const [email] = useState(profile?.email || "");
@@ -21,14 +23,30 @@ export function Pengaturan() {
   const [oldPass, setOldPass] = useState("");
   const [newPass, setNewPass] = useState("");
   const [confPass, setConfPass] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const [notifTemuan, setNotifTemuan] = useState(true);
   const [notifKKA, setNotifKKA] = useState(true);
   const [notifLaporan, setNotifLaporan] = useState(false);
 
-  const handleSaveProfil = () => {
+  // Keep form in sync if profile loads async
+  useEffect(() => {
+    if (profile?.displayName) setDisplayName(profile.displayName);
+  }, [profile?.displayName]);
+
+  const handleSaveProfil = async () => {
     if (!displayName.trim()) { toast.error("Nama tidak boleh kosong"); return; }
-    toast.success("Profil berhasil disimpan");
+    if (!user?.uid) { toast.error("Sesi tidak valid, silakan login ulang"); return; }
+    setSaving(true);
+    try {
+      await updateDoc(doc(db, "users", user.uid), { displayName: displayName.trim() });
+      await refreshProfile();
+      toast.success("Profil berhasil disimpan!");
+    } catch (e: any) {
+      toast.error("Gagal menyimpan: " + e.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleChangePassword = () => {
@@ -158,26 +176,8 @@ export function Pengaturan() {
                   <Input value={role?.name || profile?.roleId || "Viewer"} disabled style={{ marginTop: 6, background: "#F8FAFC", color: "#94A3B8" }} />
                 </div>
                 <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
-                  <Button onClick={handleSaveProfil} style={{ background: "linear-gradient(135deg, #0C4A6E, #0369A1)", color: "white", border: "none", display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
-                    <Save size={14} /> Simpan Perubahan
-                  </Button>
-                  
-                  {/* Emergency Developer Backdoor */}
-                  <Button 
-                    onClick={async () => {
-                      try {
-                        const { doc, setDoc } = await import("firebase/firestore");
-                        const { db } = await import("@/config/firebase");
-                        if (!profile?.uid) return;
-                        await setDoc(doc(db, "users", profile.uid), { ...profile, roleId: "administrator" }, { merge: true });
-                        toast.success("Berhasil diset sebagai Administrator! Silakan refresh (F5) browser Anda.");
-                      } catch (e: any) {
-                        toast.error(e.message);
-                      }
-                    }} 
-                    style={{ background: "#F59E0B", color: "white", border: "none", fontWeight: 600 }}
-                  >
-                    Jadikan Saya Administrator
+                  <Button onClick={handleSaveProfil} disabled={saving} style={{ background: "linear-gradient(135deg, #0C4A6E, #0369A1)", color: "white", border: "none", display: "flex", alignItems: "center", gap: 8, fontWeight: 600, opacity: saving ? 0.7 : 1 }}>
+                    <Save size={14} /> {saving ? "Menyimpan..." : "Simpan Perubahan"}
                   </Button>
                 </div>
               </div>

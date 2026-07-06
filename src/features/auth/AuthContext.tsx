@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, signOut as firebaseSignOut } from "firebase/auth";
 import type { User } from "firebase/auth";
 import { auth, db } from "@/config/firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 
 export interface Role {
   id: string;
@@ -30,6 +30,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   hasPermission: (permission: string) => boolean;
   hasRoleName: (roleName: string) => boolean;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -41,7 +42,45 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
   hasPermission: () => false,
   hasRoleName: () => false,
+  refreshProfile: async () => {},
 });
+
+const ADMIN_FALLBACK_PERMS = [
+  "dashboard.view",
+  "master.view", "master.create", "master.update", "master.delete",
+  "user.view", "user.create", "user.update", "user.delete",
+  "role.view", "role.create", "role.update", "role.delete",
+  "pkpt.view", "pkpt.create", "pkpt.update", "pkpt.delete", "pkpt.approve",
+  "assignment.view", "assignment.create", "assignment.update", "assignment.delete", "assignment.approve",
+  "kka.view", "kka.create", "kka.update", "kka.review", "kka.approve",
+  "finding.view", "finding.create", "finding.update", "finding.review", "finding.approve",
+  "rtl.view", "rtl.create", "rtl.update", "rtl.verify", "rtl.close",
+  "evidence.upload", "evidence.download", "evidence.delete",
+  "report.view", "report.export", "report.print",
+  "auditTrail.view",
+  "settings.view", "settings.update",
+];
+
+async function resolveRolePermissions(roleId: string): Promise<{ role: Role | null; permissions: string[] }> {
+  const roleRef = doc(db, "roles", roleId);
+  const roleSnap = await getDoc(roleRef);
+  if (roleSnap.exists()) {
+    const roleData = { id: roleSnap.id, ...roleSnap.data() } as Role;
+    return { role: roleData, permissions: roleData.permissions || [] };
+  }
+  // Fallback for administrator when roles collection not seeded yet
+  if (roleId === "administrator") {
+    const fallbackRole: Role = {
+      id: "administrator",
+      name: "Administrator",
+      description: "Full access (fallback)",
+      isSystemRole: true,
+      permissions: ADMIN_FALLBACK_PERMS,
+    };
+    return { role: fallbackRole, permissions: ADMIN_FALLBACK_PERMS };
+  }
+  return { role: null, permissions: [] };
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -51,99 +90,103 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    let profileUnsubscribe: (() => void) | null = null;
+
+    const authUnsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      // Clean up previous profile listener
+      if (profileUnsubscribe) {
+        profileUnsubscribe();
+        profileUnsubscribe = null;
+      }
+
       setUser(currentUser);
-      
-      if (currentUser) {
-        try {
-          const docRef = doc(db, "users", currentUser.uid);
-          let docSnap = await getDoc(docRef);
-          let userProfile: UserProfile;
 
-          if (docSnap.exists()) {
-            userProfile = docSnap.data() as UserProfile;
-          } else {
-            // Default setup for new users logged in via Google Auth
-            userProfile = {
-               uid: currentUser.uid,
-               email: currentUser.email || '',
-               displayName: currentUser.displayName || 'Unknown User',
-               roleId: 'viewer', // default safe role
-               isActive: true
-            };
-            await setDoc(docRef, userProfile);
-          }
-          
-          setProfile(userProfile);
-
-          // Fetch Role permissions from Firestore
-          if (userProfile.roleId) {
-            const roleRef = doc(db, "roles", userProfile.roleId);
-            const roleSnap = await getDoc(roleRef);
-            if (roleSnap.exists()) {
-              const roleData = { id: roleSnap.id, ...roleSnap.data() } as Role;
-              setRole(roleData);
-              setPermissions(roleData.permissions || []);
-            } else {
-              // Fallback: if administrator but roles not seeded yet, grant full access
-              if (userProfile.roleId === "administrator") {
-                const adminFallbackPerms = [
-                  "dashboard.view",
-                  "master.view", "master.create", "master.update", "master.delete",
-                  "user.view", "user.create", "user.update", "user.delete",
-                  "role.view", "role.create", "role.update", "role.delete",
-                  "pkpt.view", "pkpt.create", "pkpt.update", "pkpt.delete", "pkpt.approve",
-                  "assignment.view", "assignment.create", "assignment.update", "assignment.delete", "assignment.approve",
-                  "kka.view", "kka.create", "kka.update", "kka.review", "kka.approve",
-                  "finding.view", "finding.create", "finding.update", "finding.review", "finding.approve",
-                  "rtl.view", "rtl.create", "rtl.update", "rtl.verify", "rtl.close",
-                  "evidence.upload", "evidence.download", "evidence.delete",
-                  "report.view", "report.export", "report.print",
-                  "auditTrail.view",
-                  "settings.view", "settings.update",
-                ];
-                setRole({ id: "administrator", name: "Administrator", description: "Full access (fallback)", isSystemRole: true, permissions: adminFallbackPerms });
-                setPermissions(adminFallbackPerms);
-              } else {
-                setRole(null);
-                setPermissions([]);
-              }
-            }
-          }
-
-        } catch (error) {
-          console.error("Error fetching user profile or roles:", error);
-          setProfile(null);
-          setRole(null);
-          setPermissions([]);
-        }
-      } else {
+      if (!currentUser) {
         setProfile(null);
         setRole(null);
         setPermissions([]);
+        setLoading(false);
+        return;
       }
-      
-      setLoading(false);
+
+      const docRef = doc(db, "users", currentUser.uid);
+
+      // Ensure user document exists
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) {
+        const newProfile: UserProfile = {
+          uid: currentUser.uid,
+          email: currentUser.email || "",
+          displayName: currentUser.displayName || "Unknown User",
+          roleId: "viewer",
+          isActive: true,
+        };
+        await setDoc(docRef, newProfile);
+      }
+
+      // ── Real-time listener for user profile ──────────────────────────────
+      // Any change in Firestore (e.g. Admin changes roleId) is instantly reflected.
+      profileUnsubscribe = onSnapshot(docRef, async (snap) => {
+        if (!snap.exists()) {
+          setProfile(null);
+          setRole(null);
+          setPermissions([]);
+          return;
+        }
+
+        const userProfile = snap.data() as UserProfile;
+        setProfile(userProfile);
+
+        // Resolve role + permissions whenever profile changes
+        if (userProfile.roleId) {
+          const { role: resolvedRole, permissions: resolvedPerms } =
+            await resolveRolePermissions(userProfile.roleId);
+          setRole(resolvedRole);
+          setPermissions(resolvedPerms);
+        } else {
+          setRole(null);
+          setPermissions([]);
+        }
+
+        setLoading(false);
+      });
     });
 
-    return () => unsubscribe();
+    return () => {
+      authUnsubscribe();
+      if (profileUnsubscribe) profileUnsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
     await firebaseSignOut(auth);
   };
 
-  const hasPermission = (permission: string) => {
-    // If it's a super admin role, we might want to bypass, but for now we rely on explicit permissions array
-    return permissions.includes(permission);
+  /** Force-reload profile & permissions (e.g. after user saves their own profile) */
+  const refreshProfile = async () => {
+    if (!user) return;
+    const docRef = doc(db, "users", user.uid);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const userProfile = snap.data() as UserProfile;
+      setProfile(userProfile);
+      if (userProfile.roleId) {
+        const { role: resolvedRole, permissions: resolvedPerms } =
+          await resolveRolePermissions(userProfile.roleId);
+        setRole(resolvedRole);
+        setPermissions(resolvedPerms);
+      }
+    }
   };
 
-  const hasRoleName = (roleName: string) => {
-    return role?.name === roleName;
-  }
+  const hasPermission = (permission: string) => permissions.includes(permission);
+
+  const hasRoleName = (roleName: string) => role?.name === roleName;
 
   return (
-    <AuthContext.Provider value={{ user, profile, permissions, role, loading, signOut, hasPermission, hasRoleName }}>
+    <AuthContext.Provider
+      value={{ user, profile, permissions, role, loading, signOut, hasPermission, hasRoleName, refreshProfile }}
+    >
       {children}
     </AuthContext.Provider>
   );
