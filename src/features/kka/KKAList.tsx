@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/config/supabase";
 import { DataTable } from "@/components/ui/data-table";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2, Eye, FolderOpen, GitBranch } from "lucide-react";
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "firebase/firestore";
-import { db } from "@/config/firebase";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +13,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
+import { useAuth } from "@/features/auth/AuthContext";
+import { logAudit } from "@/utils/audit";
 
 export interface KKA {
   id: string;
@@ -35,6 +36,7 @@ const kkaSchema = z.object({
 type KKAFormValues = z.infer<typeof kkaSchema>;
 
 export function KKAList() {
+  const { hasPermission, user, profile } = useAuth();
   const [data, setData] = useState<KKA[]>([]);
   const [branches, setBranches] = useState<{ id: string, name: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,19 +51,23 @@ export function KKAList() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const branchesSnapshot = await getDocs(collection(db, "branches"));
-      const branchesData: { id: string, name: string }[] = [];
-      branchesSnapshot.forEach((d) => {
-        branchesData.push({ id: d.id, name: d.data().name });
-      });
-      setBranches(branchesData);
+      const [{ data: bData, error: bErr }, { data: kData, error: kErr }] = await Promise.all([
+        supabase.from("branches").select("*").is("deleted_at", null),
+        supabase.from("kka").select("*").is("deleted_at", null)
+      ]);
+      if (bErr) throw bErr;
+      if (kErr) throw kErr;
 
-      const querySnapshot = await getDocs(collection(db, "kka"));
-      const kkas: KKA[] = [];
-      querySnapshot.forEach((d) => {
-        kkas.push({ id: d.id, ...d.data() } as KKA);
-      });
-      setData(kkas);
+      setBranches((bData || []).map(b => ({ id: b.id, name: b.name })));
+      setData((kData || []).map(k => ({
+        id: k.id,
+        auditId: k.audit_id || "",
+        branchId: k.branch_id || "",
+        objective: k.objective,
+        scope: k.scope,
+        status: k.status,
+        createdAt: k.created_at,
+      } as KKA)));
     } catch (error) {
       console.error("Error fetching KKA: ", error);
       toast.error("Gagal mengambil data KKA");
@@ -74,15 +80,24 @@ export function KKAList() {
 
   const onSubmit = async (values: KKAFormValues) => {
     try {
+      const payload = {
+        branch_id: values.branchId,
+        objective: values.objective,
+        scope: values.scope,
+        status: values.status,
+      };
+
       if (editingId) {
-        await updateDoc(doc(db, "kka", editingId), { ...values });
+        if (!hasPermission("kka.update")) throw new Error("Unauthorized");
+        const { error } = await supabase.from("kka").update(payload).eq("id", editingId);
+        if (error) throw error;
+        await logAudit({ action: "UPDATE", collectionName: "kka", docId: editingId, changes: JSON.stringify(payload), userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("KKA berhasil diperbarui");
       } else {
-        await addDoc(collection(db, "kka"), {
-          ...values,
-          auditId: "",
-          createdAt: new Date().toISOString()
-        });
+        if (!hasPermission("kka.create")) throw new Error("Unauthorized");
+        const { data: newDoc, error } = await supabase.from("kka").insert([payload]).select().single();
+        if (error) throw error;
+        await logAudit({ action: "CREATE", collectionName: "kka", docId: newDoc.id, changes: JSON.stringify(payload), userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("KKA baru berhasil ditambahkan");
       }
       setIsDialogOpen(false);
@@ -102,9 +117,12 @@ export function KKAList() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!hasPermission("kka.delete")) { toast.error("Anda tidak memiliki akses menghapus data"); return; }
     if (window.confirm("Apakah Anda yakin ingin menghapus KKA ini?")) {
       try {
-        await deleteDoc(doc(db, "kka", id));
+        const { error } = await supabase.from("kka").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+        if (error) throw error;
+        await logAudit({ action: "DELETE", collectionName: "kka", docId: id, userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("KKA berhasil dihapus");
         fetchData();
       } catch {
@@ -178,12 +196,16 @@ export function KKAList() {
             <Button variant="outline" size="sm" className="h-8 w-8 p-0 border-slate-200 hover:bg-slate-50">
               <Eye className="h-3.5 w-3.5 text-slate-500" />
             </Button>
-            <Button variant="outline" size="sm" onClick={() => handleEdit(kka)} className="h-8 w-8 p-0 border-sky-200 hover:bg-sky-50">
-              <Edit className="h-3.5 w-3.5 text-sky-600" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => handleDelete(kka.id)} className="h-8 w-8 p-0 border-red-200 hover:bg-red-50">
-              <Trash2 className="h-3.5 w-3.5 text-red-500" />
-            </Button>
+            {hasPermission("kka.update") && (
+              <Button variant="outline" size="sm" onClick={() => handleEdit(kka)} className="h-8 w-8 p-0 border-sky-200 hover:bg-sky-50">
+                <Edit className="h-3.5 w-3.5 text-sky-600" />
+              </Button>
+            )}
+            {hasPermission("kka.delete") && (
+              <Button variant="outline" size="sm" onClick={() => handleDelete(kka.id)} className="h-8 w-8 p-0 border-red-200 hover:bg-red-50">
+                <Trash2 className="h-3.5 w-3.5 text-red-500" />
+              </Button>
+            )}
           </div>
         );
       },
@@ -192,7 +214,6 @@ export function KKAList() {
 
   return (
     <div className="fade-in-up" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Header */}
       <div
         className="rounded-2xl text-white relative overflow-hidden"
         style={{
@@ -210,94 +231,95 @@ export function KKAList() {
             </div>
             <p className="text-sky-200 text-sm">Kelola kertas kerja dan dokumentasi pengujian audit.</p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) { form.reset(); setEditingId(null); }
-          }}>
-            <DialogTrigger asChild>
-              <Button
-                className="h-9 px-4 text-sm font-semibold gap-1.5 border-0"
-                style={{ background: "rgba(255,255,255,0.18)", color: "white" }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.28)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.18)"; }}
-              >
-                <Plus size={15} /> Buat KKA Baru
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle className="text-lg font-bold" style={{ color: "#0C4A6E" }}>
-                  {editingId ? "Edit KKA" : "Buat KKA Baru"}
-                </DialogTitle>
-              </DialogHeader>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-1">
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold text-slate-700">Cabang PDAM</Label>
-                  <Select
-                    onValueChange={(val) => form.setValue("branchId", val)}
-                    defaultValue={form.getValues("branchId")}
-                  >
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Pilih Cabang..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {branches.map(b => (
-                        <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {form.formState.errors.branchId && (
-                    <p className="text-xs text-red-500">{form.formState.errors.branchId.message}</p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="objective" className="text-sm font-semibold text-slate-700">Tujuan Audit</Label>
-                  <Input id="objective" className="h-10" {...form.register("objective")} placeholder="Menilai kepatuhan prosedur..." />
-                  {form.formState.errors.objective && (
-                    <p className="text-xs text-red-500">{form.formState.errors.objective.message}</p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="scope" className="text-sm font-semibold text-slate-700">Ruang Lingkup</Label>
-                  <Textarea id="scope" {...form.register("scope")} placeholder="Periode pemeriksaan, area fisik..." rows={3} className="resize-none" />
-                  {form.formState.errors.scope && (
-                    <p className="text-xs text-red-500">{form.formState.errors.scope.message}</p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold text-slate-700">Status</Label>
-                  <Select
-                    onValueChange={(val) => form.setValue("status", val as KKAFormValues["status"])}
-                    defaultValue={form.getValues("status")}
-                  >
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Pilih Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Draft">Draft</SelectItem>
-                      <SelectItem value="Review">Review</SelectItem>
-                      <SelectItem value="Selesai">Selesai</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Batal</Button>
-                  <Button
-                    type="submit"
-                    disabled={form.formState.isSubmitting}
-                    style={{ background: "linear-gradient(135deg, #0C4A6E, #0369A1)" }}
-                    className="text-white border-0"
-                  >
-                    {form.formState.isSubmitting ? "Menyimpan..." : "Simpan"}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+          {hasPermission("kka.create") && (
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) { form.reset(); setEditingId(null); }
+            }}>
+              <DialogTrigger asChild>
+                <Button
+                  className="h-9 px-4 text-sm font-semibold gap-1.5 border-0"
+                  style={{ background: "rgba(255,255,255,0.18)", color: "white" }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.28)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.18)"; }}
+                >
+                  <Plus size={15} /> Buat KKA Baru
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle className="text-lg font-bold" style={{ color: "#0C4A6E" }}>
+                    {editingId ? "Edit KKA" : "Buat KKA Baru"}
+                  </DialogTitle>
+                </DialogHeader>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-1">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold text-slate-700">Cabang PDAM</Label>
+                    <Select
+                      onValueChange={(val) => form.setValue("branchId", val || "")}
+                      defaultValue={form.getValues("branchId")}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Pilih Cabang..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {branches.map(b => (
+                          <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {form.formState.errors.branchId && (
+                      <p className="text-xs text-red-500">{form.formState.errors.branchId.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="objective" className="text-sm font-semibold text-slate-700">Tujuan Audit</Label>
+                    <Input id="objective" className="h-10" {...form.register("objective")} placeholder="Menilai kepatuhan prosedur..." />
+                    {form.formState.errors.objective && (
+                      <p className="text-xs text-red-500">{form.formState.errors.objective.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="scope" className="text-sm font-semibold text-slate-700">Ruang Lingkup</Label>
+                    <Textarea id="scope" {...form.register("scope")} placeholder="Periode pemeriksaan, area fisik..." rows={3} className="resize-none" />
+                    {form.formState.errors.scope && (
+                      <p className="text-xs text-red-500">{form.formState.errors.scope.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold text-slate-700">Status</Label>
+                    <Select
+                      onValueChange={(val) => form.setValue("status", val as KKAFormValues["status"])}
+                      defaultValue={form.getValues("status")}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Pilih Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Draft">Draft</SelectItem>
+                        <SelectItem value="Review">Review</SelectItem>
+                        <SelectItem value="Selesai">Selesai</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Batal</Button>
+                    <Button
+                      type="submit"
+                      disabled={form.formState.isSubmitting}
+                      style={{ background: "linear-gradient(135deg, #0C4A6E, #0369A1)" }}
+                      className="text-white border-0"
+                    >
+                      {form.formState.isSubmitting ? "Menyimpan..." : "Simpan"}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
 
-      {/* Summary chips */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         {[
           { label: "Total KKA", value: data.length, color: "#0369A1", bg: "#E0F2FE" },
@@ -315,7 +337,6 @@ export function KKAList() {
         ))}
       </div>
 
-      {/* Table */}
       <div
         className="bg-white rounded-2xl overflow-hidden"
         style={{ border: "1px solid #DBEAFE", boxShadow: "0 2px 12px rgba(12,74,110,0.06)" }}

@@ -17,6 +17,7 @@ import { PegawaiList } from "./features/masterData/PegawaiList";
 import { AuditorList } from "./features/masterData/AuditorList";
 import { SOPList } from "./features/masterData/SOPList";
 import { RisikoList } from "./features/masterData/RisikoList";
+import { UserList } from "./features/masterData/UserList";
 import { Pengaturan } from "./features/settings/Pengaturan";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
@@ -48,6 +49,7 @@ function App() {
                     <Route path="auditor" element={<AuditorList />} />
                     <Route path="sop" element={<SOPList />} />
                     <Route path="risiko" element={<RisikoList />} />
+                    <Route path="pengguna" element={<UserList />} />
                   </Route>
                 </Route>
 

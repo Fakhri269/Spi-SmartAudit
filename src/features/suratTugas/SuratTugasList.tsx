@@ -3,12 +3,13 @@ import { DataTable } from "@/components/ui/data-table";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2, FileSignature, Calendar, Users } from "lucide-react";
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/config/firebase";
+import { supabase } from "@/config/supabase";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/features/auth/AuthContext";
+import { logAudit } from "@/utils/audit";
 
 export interface SuratTugas {
   id: string;
@@ -19,6 +20,7 @@ export interface SuratTugas {
 }
 
 export function SuratTugasList() {
+  const { hasPermission, user, profile } = useAuth();
   const [data, setData] = useState<SuratTugas[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,12 +39,15 @@ export function SuratTugasList() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const querySnapshot = await getDocs(collection(db, "surat_tugas"));
-      const suratList: SuratTugas[] = [];
-      querySnapshot.forEach((doc) => {
-        suratList.push({ id: doc.id, ...doc.data() } as SuratTugas);
-      });
-      setData(suratList);
+      const { data: suratList, error } = await supabase.from("surat_tugas").select("*").is("deleted_at", null);
+      if (error) throw error;
+      setData((suratList || []).map(d => ({
+        id: d.id,
+        nomor: d.nomor,
+        tanggal: d.tanggal,
+        timAudit: d.tim_audit,
+        objekAudit: d.objek_audit
+      })));
     } catch (error) {
       console.error("Error fetching surat tugas: ", error);
       // Fallback empty data to avoid crashing if permissions are wrong
@@ -51,6 +56,10 @@ export function SuratTugasList() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handleOpenAdd = () => {
     setIsEdit(false);
@@ -81,23 +90,18 @@ export function SuratTugasList() {
 
     setIsSubmitting(true);
     try {
+      const payload = { nomor, tanggal, tim_audit: timAudit, objek_audit: objekAudit };
       if (isEdit) {
-        await updateDoc(doc(db, "surat_tugas", currentId), {
-          nomor,
-          tanggal,
-          timAudit,
-          objekAudit,
-          updatedAt: serverTimestamp(),
-        });
+        if (!hasPermission("assignment.update")) throw new Error("Unauthorized");
+        const { error } = await supabase.from("surat_tugas").update(payload).eq("id", currentId);
+        if (error) throw error;
+        await logAudit({ action: "UPDATE", collectionName: "surat_tugas", docId: currentId, changes: JSON.stringify(payload), userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Surat Tugas berhasil diperbarui");
       } else {
-        await addDoc(collection(db, "surat_tugas"), {
-          nomor,
-          tanggal,
-          timAudit,
-          objekAudit,
-          createdAt: serverTimestamp(),
-        });
+        if (!hasPermission("assignment.create")) throw new Error("Unauthorized");
+        const { data: newDoc, error } = await supabase.from("surat_tugas").insert([payload]).select().single();
+        if (error) throw error;
+        await logAudit({ action: "CREATE", collectionName: "surat_tugas", docId: newDoc.id, changes: JSON.stringify(payload), userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Surat Tugas berhasil ditambahkan");
       }
       setOpen(false);
@@ -111,9 +115,12 @@ export function SuratTugasList() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!hasPermission("assignment.delete")) { toast.error("Anda tidak memiliki akses menghapus data"); return; }
     if (confirm("Apakah Anda yakin ingin menghapus surat tugas ini?")) {
       try {
-        await deleteDoc(doc(db, "surat_tugas", id));
+        const { error } = await supabase.from("surat_tugas").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+        if (error) throw error;
+        await logAudit({ action: "DELETE", collectionName: "surat_tugas", docId: id, userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Surat Tugas berhasil dihapus");
         fetchData();
       } catch (error) {
@@ -166,24 +173,28 @@ export function SuratTugasList() {
         const surat = row.original;
         return (
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleOpenEdit(surat)}
-              className="h-8 w-8 p-0"
-              style={{ borderColor: "#BAE6FD" }}
-            >
-              <Edit size={14} style={{ color: "#0369A1" }} />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleDelete(surat.id)}
-              className="h-8 w-8 p-0"
-              style={{ borderColor: "#FECACA" }}
-            >
-              <Trash2 size={14} style={{ color: "#EF4444" }} />
-            </Button>
+            {hasPermission("assignment.update") && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleOpenEdit(surat)}
+                className="h-8 w-8 p-0"
+                style={{ borderColor: "#BAE6FD" }}
+              >
+                <Edit size={14} style={{ color: "#0369A1" }} />
+              </Button>
+            )}
+            {hasPermission("assignment.delete") && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDelete(surat.id)}
+                className="h-8 w-8 p-0"
+                style={{ borderColor: "#FECACA" }}
+              >
+                <Trash2 size={14} style={{ color: "#EF4444" }} />
+              </Button>
+            )}
           </div>
         );
       },
@@ -202,14 +213,16 @@ export function SuratTugasList() {
             <h3 className="text-xl font-bold mb-1">Surat Tugas Audit</h3>
             <p className="text-sm opacity-80">Kelola dan terbitkan Surat Tugas untuk tim pemeriksa</p>
           </div>
-          <Button
-            className="border-0 shadow-lg"
-            style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(4px)", color: "white" }}
-            onClick={handleOpenAdd}
-          >
-            <Plus size={16} className="mr-2" />
-            Buat Surat Tugas
-          </Button>
+          {hasPermission("assignment.create") && (
+            <Button
+              className="border-0 shadow-lg"
+              style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(4px)", color: "white" }}
+              onClick={handleOpenAdd}
+            >
+              <Plus size={16} className="mr-2" />
+              Buat Surat Tugas
+            </Button>
+          )}
         </div>
       </div>
 

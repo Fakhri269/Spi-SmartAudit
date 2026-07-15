@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/config/firebase";
+import { supabase } from "@/config/supabase";
 import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
 import { type ColumnDef } from "@tanstack/react-table";
@@ -39,8 +38,16 @@ export function RisikoList() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const snap = await getDocs(collection(db, "risiko"));
-      setData(snap.docs.map(d => ({ id: d.id, ...d.data() } as Risiko)));
+      const { data: risks, error } = await supabase.from("risiko").select("*").is("deleted_at", null);
+      if (error) throw error;
+      setData((risks || []).map(d => ({
+        id: d.id,
+        kode: d.kode,
+        nama: d.nama,
+        kategori: d.kategori,
+        level: d.level,
+        mitigasi: d.mitigasi || "",
+      })));
     } catch { toast.error("Gagal memuat data risiko"); }
     finally { setLoading(false); }
   };
@@ -58,13 +65,15 @@ export function RisikoList() {
       const payload = { kode, nama, kategori, level, mitigasi };
       if (isEdit) {
         if (!hasPermission("master.update")) throw new Error("Unauthorized");
-        await updateDoc(doc(db, "risiko", currentId), { ...payload, updatedAt: serverTimestamp() });
-        await logAudit({ action: "UPDATE", collectionName: "risiko", docId: currentId, changes: JSON.stringify(payload), userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
+        const { error } = await supabase.from("risiko").update(payload).eq("id", currentId);
+        if (error) throw error;
+        await logAudit({ action: "UPDATE", collectionName: "risiko", docId: currentId, changes: JSON.stringify(payload), userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Data risiko diperbarui");
       } else {
         if (!hasPermission("master.create")) throw new Error("Unauthorized");
-        const newDoc = await addDoc(collection(db, "risiko"), { ...payload, createdAt: serverTimestamp() });
-        await logAudit({ action: "CREATE", collectionName: "risiko", docId: newDoc.id, changes: JSON.stringify(payload), userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
+        const { data: newDoc, error } = await supabase.from("risiko").insert([payload]).select().single();
+        if (error) throw error;
+        await logAudit({ action: "CREATE", collectionName: "risiko", docId: newDoc.id, changes: JSON.stringify(payload), userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Risiko baru ditambahkan");
       }
       setOpen(false); fetchData();
@@ -76,8 +85,9 @@ export function RisikoList() {
     if (!hasPermission("master.delete")) { toast.error("Anda tidak memiliki akses menghapus data"); return; }
     if (confirm("Hapus data risiko ini?")) {
       try { 
-        await deleteDoc(doc(db, "risiko", id)); 
-        await logAudit({ action: "DELETE", collectionName: "risiko", docId: id, userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
+        const { error } = await supabase.from("risiko").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+        if (error) throw error;
+        await logAudit({ action: "DELETE", collectionName: "risiko", docId: id, userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Risiko dihapus"); 
         fetchData(); 
       }
@@ -163,7 +173,7 @@ export function RisikoList() {
             ].map(f => (
               <div key={f.label} style={{ display: "grid", gridTemplateColumns: "90px 1fr", alignItems: "center", gap: 12 }}>
                 <Label style={{ textAlign: "right", fontSize: 13 }}>{f.label}</Label>
-                <Select value={f.val} onValueChange={f.set}>
+                <Select value={f.val} onValueChange={(val) => f.set(val || "")}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{f.opts.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
                 </Select>

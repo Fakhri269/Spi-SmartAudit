@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/config/firebase";
+import { supabase } from "@/config/supabase";
 import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
 import { type ColumnDef } from "@tanstack/react-table";
@@ -9,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Trash2, FileCode, ExternalLink } from "lucide-react";
+import { Plus, Edit, Trash2, FileCode } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
 import { logAudit } from "@/utils/audit";
 
@@ -39,8 +38,16 @@ export function SOPList() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const snap = await getDocs(collection(db, "sop"));
-      setData(snap.docs.map(d => ({ id: d.id, ...d.data() } as SOP)));
+      const { data: sops, error } = await supabase.from("sop").select("*").is("deleted_at", null);
+      if (error) throw error;
+      setData((sops || []).map(d => ({
+        id: d.id,
+        kode: d.kode,
+        judul: d.judul,
+        kategori: d.kategori,
+        status: d.status,
+        tahun: d.tahun,
+      })));
     } catch { toast.error("Gagal memuat data SOP"); }
     finally { setLoading(false); }
   };
@@ -58,13 +65,15 @@ export function SOPList() {
       const payload = { kode, judul, kategori, status, tahun };
       if (isEdit) {
         if (!hasPermission("master.update")) throw new Error("Unauthorized");
-        await updateDoc(doc(db, "sop", currentId), { ...payload, updatedAt: serverTimestamp() });
-        await logAudit({ action: "UPDATE", collectionName: "sop", docId: currentId, changes: JSON.stringify(payload), userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
+        const { error } = await supabase.from("sop").update(payload).eq("id", currentId);
+        if (error) throw error;
+        await logAudit({ action: "UPDATE", collectionName: "sop", docId: currentId, changes: JSON.stringify(payload), userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("SOP/Peraturan diperbarui");
       } else {
         if (!hasPermission("master.create")) throw new Error("Unauthorized");
-        const newDoc = await addDoc(collection(db, "sop"), { ...payload, createdAt: serverTimestamp() });
-        await logAudit({ action: "CREATE", collectionName: "sop", docId: newDoc.id, changes: JSON.stringify(payload), userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
+        const { data: newDoc, error } = await supabase.from("sop").insert([payload]).select().single();
+        if (error) throw error;
+        await logAudit({ action: "CREATE", collectionName: "sop", docId: newDoc.id, changes: JSON.stringify(payload), userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("SOP/Peraturan baru ditambahkan");
       }
       setOpen(false); fetchData();
@@ -76,8 +85,9 @@ export function SOPList() {
     if (!hasPermission("master.delete")) { toast.error("Anda tidak memiliki akses menghapus data"); return; }
     if (confirm("Hapus data ini?")) {
       try { 
-        await deleteDoc(doc(db, "sop", id)); 
-        await logAudit({ action: "DELETE", collectionName: "sop", docId: id, userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
+        const { error } = await supabase.from("sop").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+        if (error) throw error;
+        await logAudit({ action: "DELETE", collectionName: "sop", docId: id, userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Data dihapus"); 
         fetchData(); 
       }
@@ -171,7 +181,7 @@ export function SOPList() {
             ].map(f => (
               <div key={f.label} style={{ display: "grid", gridTemplateColumns: "100px 1fr", alignItems: "center", gap: 12 }}>
                 <Label style={{ textAlign: "right", fontSize: 13 }}>{f.label}</Label>
-                <Select value={f.val} onValueChange={f.set}>
+                <Select value={f.val} onValueChange={(val) => f.set(val || "")}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{f.opts.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
                 </Select>

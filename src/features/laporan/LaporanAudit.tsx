@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/config/firebase";
-import { FileText, Printer, Download, TrendingUp, AlertTriangle, CheckCircle, Clock, BarChart2, ChevronDown, ChevronUp } from "lucide-react";
+import { FileText, Printer, Download, TrendingUp, AlertTriangle, CheckCircle, BarChart2, ChevronDown, ChevronUp } from "lucide-react";
 import type { KKA } from "@/features/kka/KKAList";
 import type { Temuan } from "@/features/findings/TemuanList";
 

@@ -4,13 +4,12 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Settings, User, Bell, Lock, Shield, Save, Eye, EyeOff, Users, Database, FileClock } from "lucide-react";
+import { User, Bell, Lock, Shield, Save, Eye, EyeOff, Users, Database, FileClock } from "lucide-react";
 import { RoleList } from "./RoleList";
-import { UserList } from "./UserList";
+import { UserList } from "../masterData/UserList";
 import { AuditTrailList } from "./AuditTrailList";
 import { SeedRBAC } from "./SeedRBAC";
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "@/config/firebase";
+import { supabase } from "@/config/supabase";
 
 type Tab = "profil" | "notifikasi" | "keamanan" | "pengguna" | "role" | "audit" | "sistem";
 
@@ -36,10 +35,11 @@ export function Pengaturan() {
 
   const handleSaveProfil = async () => {
     if (!displayName.trim()) { toast.error("Nama tidak boleh kosong"); return; }
-    if (!user?.uid) { toast.error("Sesi tidak valid, silakan login ulang"); return; }
+    if (!user?.id) { toast.error("Sesi tidak valid, silakan login ulang"); return; }
     setSaving(true);
     try {
-      await updateDoc(doc(db, "users", user.uid), { displayName: displayName.trim() });
+      const { error } = await supabase.from("users").update({ display_name: displayName.trim() }).eq("id", user.id);
+      if (error) throw error;
       await refreshProfile();
       toast.success("Profil berhasil disimpan!");
     } catch (e: any) {

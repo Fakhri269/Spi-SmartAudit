@@ -3,8 +3,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2 } from "lucide-react";
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "firebase/firestore";
-import { db } from "@/config/firebase";
+import { supabase } from "@/config/supabase";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,11 +19,13 @@ import { logAudit } from "@/utils/audit";
 export interface Bagian {
   id: string;
   name: string;
+  code: string;
   branchId: string;
 }
 
 const bagianSchema = z.object({
   name: z.string().min(3, "Nama bagian minimal 3 karakter"),
+  code: z.string().min(2, "Kode bagian minimal 2 karakter"),
   branchId: z.string().min(1, "Cabang harus dipilih"),
 });
 
@@ -40,32 +41,21 @@ export function BagianList() {
 
   const form = useForm<BagianFormValues>({
     resolver: zodResolver(bagianSchema),
-    defaultValues: {
-      name: "",
-      branchId: "",
-    },
+    defaultValues: { name: "", code: "", branchId: "" },
   });
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [bagianSnap, cabangSnap] = await Promise.all([
-        getDocs(collection(db, "departments")),
-        getDocs(collection(db, "branches"))
+      const [{ data: depts, error: deptErr }, { data: brs, error: brErr }] = await Promise.all([
+        supabase.from("departments").select("*").is("deleted_at", null).order("created_at", { ascending: false }),
+        supabase.from("branches").select("*").is("deleted_at", null).order("name"),
       ]);
-      
-      const bgs: Bagian[] = [];
-      bagianSnap.forEach((doc) => {
-        bgs.push({ id: doc.id, ...doc.data() } as Bagian);
-      });
-      setData(bgs);
+      if (deptErr) throw deptErr;
+      if (brErr) throw brErr;
 
-      const cbs: Cabang[] = [];
-      cabangSnap.forEach((doc) => {
-        cbs.push({ id: doc.id, ...doc.data() } as Cabang);
-      });
-      setBranches(cbs);
-
+      setData((depts || []).map(d => ({ id: d.id, name: d.name, code: d.code, branchId: d.branch_id || "" })));
+      setBranches((brs || []).map(b => ({ id: b.id, code: b.code, name: b.name, region: b.region, managerName: b.manager_name })));
     } catch (error) {
       console.error("Error fetching data: ", error);
       toast.error("Gagal mengambil data");
@@ -74,39 +64,33 @@ export function BagianList() {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const onSubmit = async (values: BagianFormValues) => {
     try {
+      const dbValues = { name: values.name, code: values.code };
       if (editingId) {
         if (!hasPermission("master.update")) throw new Error("Unauthorized");
-        await updateDoc(doc(db, "departments", editingId), values);
-        await logAudit({ action: "UPDATE", collectionName: "departments", docId: editingId, changes: JSON.stringify(values), userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
+        const { error } = await supabase.from("departments").update(dbValues).eq("id", editingId);
+        if (error) throw error;
+        await logAudit({ action: "UPDATE", collectionName: "departments", docId: editingId, changes: JSON.stringify(values), userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Data bagian berhasil diperbarui");
       } else {
         if (!hasPermission("master.create")) throw new Error("Unauthorized");
-        const newDoc = await addDoc(collection(db, "departments"), values);
-        await logAudit({ action: "CREATE", collectionName: "departments", docId: newDoc.id, changes: JSON.stringify(values), userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
+        const { data: newDoc, error } = await supabase.from("departments").insert(dbValues).select().single();
+        if (error) throw error;
+        await logAudit({ action: "CREATE", collectionName: "departments", docId: newDoc.id, changes: JSON.stringify(values), userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Bagian baru berhasil ditambahkan");
       }
-      setIsDialogOpen(false);
-      form.reset();
-      setEditingId(null);
-      fetchData();
-    } catch (error) {
-      console.error("Error saving department:", error);
-      toast.error("Terjadi kesalahan saat menyimpan data");
+      setIsDialogOpen(false); form.reset(); setEditingId(null); fetchData();
+    } catch (error: any) {
+      toast.error(error.message || "Terjadi kesalahan saat menyimpan data");
     }
   };
 
   const handleEdit = (bagian: Bagian) => {
     setEditingId(bagian.id);
-    form.reset({
-      name: bagian.name,
-      branchId: bagian.branchId,
-    });
+    form.reset({ name: bagian.name, code: bagian.code, branchId: bagian.branchId });
     setIsDialogOpen(true);
   };
 
@@ -114,117 +98,87 @@ export function BagianList() {
     if (!hasPermission("master.delete")) { toast.error("Anda tidak memiliki akses menghapus data"); return; }
     if (window.confirm("Apakah Anda yakin ingin menghapus data ini?")) {
       try {
-        await deleteDoc(doc(db, "departments", id));
-        await logAudit({ action: "DELETE", collectionName: "departments", docId: id, userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
+        const { error } = await supabase.from("departments").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+        if (error) throw error;
+        await logAudit({ action: "DELETE", collectionName: "departments", docId: id, userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Data bagian berhasil dihapus");
         fetchData();
-      } catch (error) {
-        console.error("Error deleting department:", error);
-        toast.error("Gagal menghapus data");
+      } catch (error: any) {
+        toast.error(error.message || "Gagal menghapus data");
       }
     }
   };
 
   const columns: ColumnDef<Bagian>[] = [
-    {
-      accessorKey: "name",
-      header: "Nama Bagian",
-    },
+    { accessorKey: "code", header: "Kode" },
+    { accessorKey: "name", header: "Nama Bagian" },
     {
       accessorKey: "branchId",
       header: "Cabang",
       cell: ({ row }) => {
-        const branchId = row.getValue("branchId") as string;
-        const branch = branches.find(b => b.id === branchId);
-        return branch ? branch.name : "Unknown";
+        const branch = branches.find(b => b.id === row.getValue("branchId"));
+        return branch ? branch.name : "-";
       }
     },
     {
-      id: "actions",
-      header: "Aksi",
-      cell: ({ row }) => {
-        const bagian = row.original;
-        return (
-          <div className="flex items-center gap-2">
-            {hasPermission("master.update") && (
-              <Button variant="outline" size="icon" onClick={() => handleEdit(bagian)}>
-                <Edit className="h-4 w-4 text-blue-600" />
-              </Button>
-            )}
-            {hasPermission("master.delete") && (
-              <Button variant="outline" size="icon" onClick={() => handleDelete(bagian.id)}>
-                <Trash2 className="h-4 w-4 text-red-600" />
-              </Button>
-            )}
-          </div>
-        );
-      },
+      id: "actions", header: "Aksi",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          {hasPermission("master.update") && (
+            <Button variant="outline" size="icon" onClick={() => handleEdit(row.original)}>
+              <Edit className="h-4 w-4 text-blue-600" />
+            </Button>
+          )}
+          {hasPermission("master.delete") && (
+            <Button variant="outline" size="icon" onClick={() => handleDelete(row.original.id)}>
+              <Trash2 className="h-4 w-4 text-red-600" />
+            </Button>
+          )}
+        </div>
+      ),
     },
   ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <h3 className="text-lg font-medium">Data Bagian</h3>
+        <h3 className="text-lg font-medium">Data Bagian / Departemen</h3>
         {hasPermission("master.create") && (
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) {
-              form.reset();
-              setEditingId(null);
-            }
-          }}>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) { form.reset(); setEditingId(null); } }}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="mr-2 h-4 w-4" /> Tambah Bagian
-              </Button>
+              <Button className="bg-blue-600 hover:bg-blue-700"><Plus className="mr-2 h-4 w-4" /> Tambah Bagian</Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{editingId ? "Edit Bagian" : "Tambah Bagian Baru"}</DialogTitle>
-              </DialogHeader>
+              <DialogHeader><DialogTitle>{editingId ? "Edit Bagian" : "Tambah Bagian Baru"}</DialogTitle></DialogHeader>
               <form onSubmit={form.handleSubmit(onSubmit)} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <Label htmlFor="code">Kode Bagian</Label>
+                  <Input id="code" {...form.register("code")} placeholder="Cth: KEU" />
+                  {form.formState.errors.code && <p className="text-sm text-red-500">{form.formState.errors.code.message}</p>}
+                </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   <Label htmlFor="name">Nama Bagian</Label>
                   <Input id="name" {...form.register("name")} placeholder="Cth: Bagian Keuangan" />
-                  {form.formState.errors.name && (
-                    <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>
-                  )}
+                  {form.formState.errors.name && <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <Label htmlFor="branchId">Cabang</Label>
-                  <Select 
-                    onValueChange={(val) => form.setValue("branchId", val ?? "")} 
-                    defaultValue={form.getValues("branchId") ?? ""}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih Cabang" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {branches.map(b => (
-                        <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                      ))}
-                    </SelectContent>
+                  <Label>Cabang</Label>
+                  <Select onValueChange={(val) => form.setValue("branchId", val ?? "")} defaultValue={form.getValues("branchId") ?? ""}>
+                    <SelectTrigger><SelectValue placeholder="Pilih Cabang" /></SelectTrigger>
+                    <SelectContent>{branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
                   </Select>
-                  {form.formState.errors.branchId && (
-                    <p className="text-sm text-red-500">{form.formState.errors.branchId.message}</p>
-                  )}
+                  {form.formState.errors.branchId && <p className="text-sm text-red-500">{form.formState.errors.branchId.message}</p>}
                 </div>
                 <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 16 }}>
-                  <Button type="submit" disabled={form.formState.isSubmitting}>
-                    {form.formState.isSubmitting ? "Menyimpan..." : "Simpan"}
-                  </Button>
+                  <Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? "Menyimpan..." : "Simpan"}</Button>
                 </div>
               </form>
             </DialogContent>
           </Dialog>
         )}
       </div>
-
       {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: 32 }}>
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
+        <div style={{ display: "flex", justifyContent: "center", padding: 32 }}><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>
       ) : (
         <DataTable columns={columns} data={data} searchKey="name" />
       )}

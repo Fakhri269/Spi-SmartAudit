@@ -9,6 +9,7 @@ const ALL_NAV_ITEMS = [
   { name: "Auditor", path: "/master-data/auditor", icon: ShieldCheck, permission: "master.view" },
   { name: "SOP & Peraturan", path: "/master-data/sop", icon: FileCode, permission: "master.view" },
   { name: "Risiko", path: "/master-data/risiko", icon: AlertOctagon, permission: "master.view" },
+  { name: "Pengguna", path: "/master-data/pengguna", icon: Users, permission: "user.view" },
 ];
 
 export function MasterDataLayout() {

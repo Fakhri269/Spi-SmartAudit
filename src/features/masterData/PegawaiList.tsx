@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/config/firebase";
+import { supabase } from "@/config/supabase";
 import { toast } from "sonner";
 import { useAuth } from "@/features/auth/AuthContext";
 import { logAudit } from "@/utils/audit";
@@ -38,8 +37,13 @@ export function PegawaiList() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const snap = await getDocs(collection(db, "pegawai"));
-      setData(snap.docs.map(d => ({ id: d.id, ...d.data() } as Pegawai)));
+      const { data: rows, error } = await supabase
+        .from("pegawai")
+        .select("*")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setData((rows || []).map(r => ({ id: r.id, nip: r.nip, name: r.name, jabatan: r.jabatan, email: r.email || "", phone: r.phone || "" })));
     } catch { toast.error("Gagal memuat data pegawai"); }
     finally { setLoading(false); }
   };
@@ -47,14 +51,8 @@ export function PegawaiList() {
   useEffect(() => { fetchData(); }, []);
 
   const resetForm = () => { setNip(""); setName(""); setJabatan(""); setEmail(""); setPhone(""); };
-
   const handleOpenAdd = () => { setIsEdit(false); setCurrentId(""); resetForm(); setOpen(true); };
-
-  const handleOpenEdit = (p: Pegawai) => {
-    setIsEdit(true); setCurrentId(p.id);
-    setNip(p.nip); setName(p.name); setJabatan(p.jabatan); setEmail(p.email); setPhone(p.phone);
-    setOpen(true);
-  };
+  const handleOpenEdit = (p: Pegawai) => { setIsEdit(true); setCurrentId(p.id); setNip(p.nip); setName(p.name); setJabatan(p.jabatan); setEmail(p.email); setPhone(p.phone); setOpen(true); };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,30 +62,31 @@ export function PegawaiList() {
       const payload = { nip, name, jabatan, email, phone };
       if (isEdit) {
         if (!hasPermission("master.update")) throw new Error("Unauthorized");
-        await updateDoc(doc(db, "pegawai", currentId), { ...payload, updatedAt: serverTimestamp() });
-        await logAudit({ action: "UPDATE", collectionName: "pegawai", docId: currentId, changes: JSON.stringify(payload), userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
+        const { error } = await supabase.from("pegawai").update(payload).eq("id", currentId);
+        if (error) throw error;
+        await logAudit({ action: "UPDATE", collectionName: "pegawai", docId: currentId, changes: JSON.stringify(payload), userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Data pegawai berhasil diperbarui");
       } else {
         if (!hasPermission("master.create")) throw new Error("Unauthorized");
-        const newDoc = await addDoc(collection(db, "pegawai"), { ...payload, createdAt: serverTimestamp() });
-        await logAudit({ action: "CREATE", collectionName: "pegawai", docId: newDoc.id, changes: JSON.stringify(payload), userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
+        const { data: newRow, error } = await supabase.from("pegawai").insert(payload).select().single();
+        if (error) throw error;
+        await logAudit({ action: "CREATE", collectionName: "pegawai", docId: newRow.id, changes: JSON.stringify(payload), userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Pegawai baru berhasil ditambahkan");
       }
       setOpen(false); fetchData();
-    } catch { toast.error("Gagal menyimpan data"); }
+    } catch (err: any) { toast.error(err.message || "Gagal menyimpan data"); }
     finally { setIsSubmitting(false); }
   };
 
   const handleDelete = async (id: string) => {
     if (!hasPermission("master.delete")) { toast.error("Anda tidak memiliki akses menghapus data"); return; }
     if (confirm("Hapus data pegawai ini?")) {
-      try { 
-        await deleteDoc(doc(db, "pegawai", id)); 
-        await logAudit({ action: "DELETE", collectionName: "pegawai", docId: id, userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
-        toast.success("Data pegawai dihapus"); 
-        fetchData(); 
-      }
-      catch { toast.error("Gagal menghapus data"); }
+      try {
+        const { error } = await supabase.from("pegawai").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+        if (error) throw error;
+        await logAudit({ action: "DELETE", collectionName: "pegawai", docId: id, userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
+        toast.success("Data pegawai dihapus"); fetchData();
+      } catch { toast.error("Gagal menghapus data"); }
     }
   };
 
@@ -101,12 +100,8 @@ export function PegawaiList() {
       id: "actions", header: "Aksi",
       cell: ({ row }) => (
         <div style={{ display: "flex", gap: 6 }}>
-          {hasPermission("master.update") && (
-            <Button variant="outline" size="sm" onClick={() => handleOpenEdit(row.original)} style={{ width: 32, height: 32, padding: 0, borderColor: "#BAE6FD" }}><Edit size={13} style={{ color: "#0369A1" }} /></Button>
-          )}
-          {hasPermission("master.delete") && (
-            <Button variant="outline" size="sm" onClick={() => handleDelete(row.original.id)} style={{ width: 32, height: 32, padding: 0, borderColor: "#FECACA" }}><Trash2 size={13} style={{ color: "#EF4444" }} /></Button>
-          )}
+          {hasPermission("master.update") && <Button variant="outline" size="sm" onClick={() => handleOpenEdit(row.original)} style={{ width: 32, height: 32, padding: 0, borderColor: "#BAE6FD" }}><Edit size={13} style={{ color: "#0369A1" }} /></Button>}
+          {hasPermission("master.delete") && <Button variant="outline" size="sm" onClick={() => handleDelete(row.original.id)} style={{ width: 32, height: 32, padding: 0, borderColor: "#FECACA" }}><Trash2 size={13} style={{ color: "#EF4444" }} /></Button>}
         </div>
       ),
     },
@@ -128,14 +123,12 @@ export function PegawaiList() {
           </Button>
         )}
       </div>
-
       {loading ? (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: 48, gap: 12 }}>
           <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: "#0369A1" }} />
           <p style={{ color: "#94A3B8", fontSize: 13 }}>Memuat data...</p>
         </div>
       ) : <DataTable columns={columns} data={data} searchKey="name" />}
-
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent style={{ maxWidth: 480 }}>
           <DialogHeader>

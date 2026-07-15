@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/config/firebase";
+import { supabase } from "@/config/supabase";
 import { useNavigate, useLocation } from "react-router-dom";
-import { AlertCircle, Eye, EyeOff, Lock, Mail, Loader2, ShieldCheck, BarChart3, Smartphone } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, Lock, Mail, Loader2, ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -22,10 +21,14 @@ export function Login() {
     setError("");
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (signInError) throw signInError;
       navigate(from, { replace: true });
-    } catch {
-      setError("Email atau password salah. Silakan coba lagi.");
+    } catch (err: any) {
+      setError(err.message || "Email atau password salah. Silakan coba lagi.");
     } finally {
       setIsLoading(false);
     }

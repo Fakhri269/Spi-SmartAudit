@@ -3,8 +3,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2, GitBranch, MapPin, User } from "lucide-react";
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "firebase/firestore";
-import { db } from "@/config/firebase";
+import { supabase } from "@/config/supabase";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,12 +46,19 @@ export function CabangList() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const querySnapshot = await getDocs(collection(db, "branches"));
-      const branches: Cabang[] = [];
-      querySnapshot.forEach((doc) => {
-        branches.push({ id: doc.id, ...doc.data() } as Cabang);
-      });
-      setData(branches);
+      const { data: branches, error } = await supabase.from("branches").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      
+      // Supabase returns an array of objects directly
+      const formattedBranches = branches.map(b => ({
+        id: b.id,
+        code: b.code,
+        name: b.name,
+        region: b.region,
+        managerName: b.manager_name
+      })) as Cabang[];
+      
+      setData(formattedBranches);
     } catch (error) {
       console.error("Error fetching branches: ", error);
       toast.error("Gagal mengambil data cabang");
@@ -67,24 +73,33 @@ export function CabangList() {
 
   const onSubmit = async (values: CabangFormValues) => {
     try {
+      const dbValues = {
+        code: values.code,
+        name: values.name,
+        region: values.region,
+        manager_name: values.managerName
+      };
+
       if (editingId) {
         if (!hasPermission("master.update")) throw new Error("Unauthorized");
-        await updateDoc(doc(db, "branches", editingId), values);
-        await logAudit({ action: "UPDATE", collectionName: "branches", docId: editingId, changes: JSON.stringify(values), userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
+        const { error } = await supabase.from("branches").update(dbValues).eq("id", editingId);
+        if (error) throw error;
+        await logAudit({ action: "UPDATE", collectionName: "branches", docId: editingId, changes: JSON.stringify(values), userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Data cabang berhasil diperbarui");
       } else {
         if (!hasPermission("master.create")) throw new Error("Unauthorized");
-        const newDoc = await addDoc(collection(db, "branches"), values);
-        await logAudit({ action: "CREATE", collectionName: "branches", docId: newDoc.id, changes: JSON.stringify(values), userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
+        const { data: newDoc, error } = await supabase.from("branches").insert(dbValues).select().single();
+        if (error) throw error;
+        await logAudit({ action: "CREATE", collectionName: "branches", docId: newDoc.id, changes: JSON.stringify(values), userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Cabang baru berhasil ditambahkan");
       }
       setIsDialogOpen(false);
       form.reset();
       setEditingId(null);
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving branch:", error);
-      toast.error("Terjadi kesalahan saat menyimpan data");
+      toast.error(error.message || "Terjadi kesalahan saat menyimpan data");
     }
   };
 
@@ -103,13 +118,14 @@ export function CabangList() {
     if (!hasPermission("master.delete")) { toast.error("Anda tidak memiliki akses menghapus data"); return; }
     if (window.confirm("Apakah Anda yakin ingin menghapus data ini?")) {
       try {
-        await deleteDoc(doc(db, "branches", id));
-        await logAudit({ action: "DELETE", collectionName: "branches", docId: id, userId: user?.uid || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
+        const { error } = await supabase.from("branches").delete().eq("id", id);
+        if (error) throw error;
+        await logAudit({ action: "DELETE", collectionName: "branches", docId: id, userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Data cabang berhasil dihapus");
         fetchData();
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error deleting branch:", error);
-        toast.error("Gagal menghapus data");
+        toast.error(error.message || "Gagal menghapus data");
       }
     }
   };

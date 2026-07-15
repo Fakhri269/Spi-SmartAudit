@@ -1,8 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, signOut as firebaseSignOut } from "firebase/auth";
-import type { User } from "firebase/auth";
-import { auth, db } from "@/config/firebase";
-import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
+import { User } from "@supabase/supabase-js";
+import { supabase } from "@/config/supabase";
 
 export interface Role {
   id: string;
@@ -13,7 +11,7 @@ export interface Role {
 }
 
 export interface UserProfile {
-  uid: string;
+  uid: string; // Will map to 'id' in the database
   email: string;
   displayName: string;
   roleId: string;
@@ -62,13 +60,25 @@ const ADMIN_FALLBACK_PERMS = [
 ];
 
 async function resolveRolePermissions(roleId: string): Promise<{ role: Role | null; permissions: string[] }> {
-  const roleRef = doc(db, "roles", roleId);
-  const roleSnap = await getDoc(roleRef);
-  if (roleSnap.exists()) {
-    const roleData = { id: roleSnap.id, ...roleSnap.data() } as Role;
-    return { role: roleData, permissions: roleData.permissions || [] };
+  const { data: roleData, error } = await supabase
+    .from("roles")
+    .select("*, role_permissions(permission_id)")
+    .eq("id", roleId)
+    .single();
+
+  if (!error && roleData) {
+    const permissions = (roleData.role_permissions || []).map((rp: any) => rp.permission_id as string);
+    const role: Role = {
+      id: roleData.id,
+      name: roleData.name,
+      permissions,
+      description: roleData.description,
+      isSystemRole: roleData.is_system_role,
+    };
+    return { role, permissions };
   }
-  // Fallback for administrator when roles collection not seeded yet
+
+  // Fallback for administrator when roles not seeded yet
   if (roleId === "administrator") {
     const fallbackRole: Role = {
       id: "administrator",
@@ -82,6 +92,7 @@ async function resolveRolePermissions(roleId: string): Promise<{ role: Role | nu
   return { role: null, permissions: [] };
 }
 
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -89,98 +100,109 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let profileUnsubscribe: (() => void) | null = null;
+  const fetchProfile = async (currentUser: User) => {
+    // Fetch profile from public.users table
+    const { data: userData, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", currentUser.id)
+      .single();
 
-    const authUnsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      // Clean up previous profile listener
-      if (profileUnsubscribe) {
-        profileUnsubscribe();
-        profileUnsubscribe = null;
-      }
+    if (!error && userData) {
+      const userProfile: UserProfile = {
+        uid: userData.id,
+        email: userData.email,
+        displayName: userData.display_name || "Unknown User",
+        roleId: userData.role_id,
+        branchId: userData.branch_id,
+        isActive: userData.is_active,
+      };
+      setProfile(userProfile);
 
-      setUser(currentUser);
-
-      if (!currentUser) {
-        setProfile(null);
+      if (userProfile.roleId) {
+        const { role: resolvedRole, permissions: resolvedPerms } = await resolveRolePermissions(userProfile.roleId);
+        setRole(resolvedRole);
+        setPermissions(resolvedPerms);
+      } else {
         setRole(null);
         setPermissions([]);
-        setLoading(false);
-        return;
       }
+    } else {
+      // User exists in auth but not in public.users — auto-register as administrator
+      // This handles first-time setup before RLS policies are in place
+      console.warn("Profile not found in public.users, auto-registering as administrator.");
+      await supabase.from("users").upsert({
+        id: currentUser.id,
+        email: currentUser.email ?? "",
+        display_name: currentUser.email?.split("@")[0] ?? "Admin",
+        role_id: "administrator",
+        is_active: true,
+      });
 
-      const docRef = doc(db, "users", currentUser.uid);
+      const fallbackProfile: UserProfile = {
+        uid: currentUser.id,
+        email: currentUser.email ?? "",
+        displayName: currentUser.email?.split("@")[0] ?? "Admin",
+        roleId: "administrator",
+        isActive: true,
+      };
+      setProfile(fallbackProfile);
+      const { role: resolvedRole, permissions: resolvedPerms } = await resolveRolePermissions("administrator");
+      setRole(resolvedRole);
+      setPermissions(resolvedPerms);
+    }
+  };
 
-      // Ensure user document exists
-      const docSnap = await getDoc(docRef);
-      if (!docSnap.exists()) {
-        const newProfile: UserProfile = {
-          uid: currentUser.uid,
-          email: currentUser.email || "",
-          displayName: currentUser.displayName || "Unknown User",
-          roleId: "viewer",
-          isActive: true,
-        };
-        await setDoc(docRef, newProfile);
-      }
+  useEffect(() => {
+    let mounted = true;
 
-      // ── Real-time listener for user profile ──────────────────────────────
-      // Any change in Firestore (e.g. Admin changes roleId) is instantly reflected.
-      profileUnsubscribe = onSnapshot(docRef, async (snap) => {
-        if (!snap.exists()) {
+    async function getInitialSession() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (mounted) {
+        if (session?.user) {
+          setUser(session.user);
+          await fetchProfile(session.user);
+        } else {
+          setUser(null);
           setProfile(null);
           setRole(null);
           setPermissions([]);
-          return;
         }
-
-        const userProfile = snap.data() as UserProfile;
-        setProfile(userProfile);
-
-        // Resolve role + permissions whenever profile changes
-        if (userProfile.roleId) {
-          const { role: resolvedRole, permissions: resolvedPerms } =
-            await resolveRolePermissions(userProfile.roleId);
-          setRole(resolvedRole);
-          setPermissions(resolvedPerms);
-        } else {
-          setRole(null);
-          setPermissions([]);
-        }
-
         setLoading(false);
-      });
+      }
+    }
+    
+    getInitialSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        await fetchProfile(session.user);
+      } else {
+        setUser(null);
+        setProfile(null);
+        setRole(null);
+        setPermissions([]);
+      }
+      setLoading(false);
     });
 
     return () => {
-      authUnsubscribe();
-      if (profileUnsubscribe) profileUnsubscribe();
+      mounted = false;
+      subscription.unsubscribe();
     };
   }, []);
 
   const signOut = async () => {
-    await firebaseSignOut(auth);
+    await supabase.auth.signOut();
   };
 
-  /** Force-reload profile & permissions (e.g. after user saves their own profile) */
   const refreshProfile = async () => {
     if (!user) return;
-    const docRef = doc(db, "users", user.uid);
-    const snap = await getDoc(docRef);
-    if (snap.exists()) {
-      const userProfile = snap.data() as UserProfile;
-      setProfile(userProfile);
-      if (userProfile.roleId) {
-        const { role: resolvedRole, permissions: resolvedPerms } =
-          await resolveRolePermissions(userProfile.roleId);
-        setRole(resolvedRole);
-        setPermissions(resolvedPerms);
-      }
-    }
+    await fetchProfile(user);
   };
 
   const hasPermission = (permission: string) => permissions.includes(permission);
-
   const hasRoleName = (roleName: string) => role?.name === roleName;
 
   return (

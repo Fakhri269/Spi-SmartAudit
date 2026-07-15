@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/config/supabase";
 import { DataTable } from "@/components/ui/data-table";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2, Eye, AlertTriangle, CheckCircle, Clock, AlertCircle } from "lucide-react";
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "firebase/firestore";
-import { db } from "@/config/firebase";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +12,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
+import { useAuth } from "@/features/auth/AuthContext";
+import { logAudit } from "@/utils/audit";
 
 export interface Temuan {
   id: string;
@@ -39,6 +40,7 @@ const temuanSchema = z.object({
 type TemuanFormValues = z.infer<typeof temuanSchema>;
 
 export function TemuanList() {
+  const { hasPermission, user, profile } = useAuth();
   const [data, setData] = useState<Temuan[]>([]);
   const [kkas, setKkas] = useState<{ id: string, objective: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,17 +57,25 @@ export function TemuanList() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const kkasSnapshot = await getDocs(collection(db, "kka"));
-      const kkasData: { id: string, objective: string }[] = [];
-      kkasSnapshot.forEach((d) => {
-        kkasData.push({ id: d.id, objective: d.data().objective });
-      });
-      setKkas(kkasData);
+      const [{ data: kkaData, error: kkaErr }, { data: findingsData, error: findErr }] = await Promise.all([
+        supabase.from("kka").select("id, objective").is("deleted_at", null),
+        supabase.from("findings").select("*").is("deleted_at", null)
+      ]);
+      if (kkaErr) throw kkaErr;
+      if (findErr) throw findErr;
 
-      const querySnapshot = await getDocs(collection(db, "findings"));
-      const findings: Temuan[] = [];
-      querySnapshot.forEach((d) => { findings.push({ id: d.id, ...d.data() } as Temuan); });
-      setData(findings);
+      setKkas((kkaData || []).map(k => ({ id: k.id, objective: k.objective })));
+      setData((findingsData || []).map(f => ({
+        id: f.id,
+        kkaId: f.kka_id || "",
+        criteria: f.criteria,
+        condition: f.condition,
+        cause: f.cause,
+        consequence: f.consequence,
+        correctiveAction: f.corrective_action || "",
+        status: f.status,
+        createdAt: f.created_at,
+      } as Temuan)));
     } catch {
       toast.error("Gagal mengambil data Temuan");
     } finally {
@@ -77,14 +87,27 @@ export function TemuanList() {
 
   const onSubmit = async (values: TemuanFormValues) => {
     try {
+      const payload = {
+        kka_id: values.kkaId,
+        criteria: values.criteria,
+        condition: values.condition,
+        cause: values.cause,
+        consequence: values.consequence,
+        corrective_action: values.correctiveAction,
+        status: values.status,
+      };
+
       if (editingId) {
-        await updateDoc(doc(db, "findings", editingId), { ...values });
+        if (!hasPermission("temuan.update")) throw new Error("Unauthorized");
+        const { error } = await supabase.from("findings").update(payload).eq("id", editingId);
+        if (error) throw error;
+        await logAudit({ action: "UPDATE", collectionName: "findings", docId: editingId, changes: JSON.stringify(payload), userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Temuan berhasil diperbarui");
       } else {
-        await addDoc(collection(db, "findings"), {
-          ...values,
-          createdAt: new Date().toISOString()
-        });
+        if (!hasPermission("temuan.create")) throw new Error("Unauthorized");
+        const { data: newDoc, error } = await supabase.from("findings").insert([payload]).select().single();
+        if (error) throw error;
+        await logAudit({ action: "CREATE", collectionName: "findings", docId: newDoc.id, changes: JSON.stringify(payload), userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Temuan baru berhasil ditambahkan");
       }
       setIsDialogOpen(false);
@@ -106,9 +129,12 @@ export function TemuanList() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!hasPermission("temuan.delete")) { toast.error("Anda tidak memiliki akses menghapus data"); return; }
     if (window.confirm("Apakah Anda yakin ingin menghapus Temuan ini?")) {
       try {
-        await deleteDoc(doc(db, "findings", id));
+        const { error } = await supabase.from("findings").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+        if (error) throw error;
+        await logAudit({ action: "DELETE", collectionName: "findings", docId: id, userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("Temuan berhasil dihapus");
         fetchData();
       } catch {
@@ -182,12 +208,16 @@ export function TemuanList() {
             <Button variant="outline" size="sm" className="h-8 w-8 p-0 border-slate-200 hover:bg-slate-50">
               <Eye className="h-3.5 w-3.5 text-slate-500" />
             </Button>
-            <Button variant="outline" size="sm" onClick={() => handleEdit(temuan)} className="h-8 w-8 p-0 border-sky-200 hover:bg-sky-50">
-              <Edit className="h-3.5 w-3.5 text-sky-600" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => handleDelete(temuan.id)} className="h-8 w-8 p-0 border-red-200 hover:bg-red-50">
-              <Trash2 className="h-3.5 w-3.5 text-red-500" />
-            </Button>
+            {hasPermission("temuan.update") && (
+              <Button variant="outline" size="sm" onClick={() => handleEdit(temuan)} className="h-8 w-8 p-0 border-sky-200 hover:bg-sky-50">
+                <Edit className="h-3.5 w-3.5 text-sky-600" />
+              </Button>
+            )}
+            {hasPermission("temuan.delete") && (
+              <Button variant="outline" size="sm" onClick={() => handleDelete(temuan.id)} className="h-8 w-8 p-0 border-red-200 hover:bg-red-50">
+                <Trash2 className="h-3.5 w-3.5 text-red-500" />
+              </Button>
+            )}
           </div>
         );
       },
@@ -204,7 +234,6 @@ export function TemuanList() {
 
   return (
     <div className="fade-in-up" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Header */}
       <div
         className="rounded-2xl text-white relative overflow-hidden"
         style={{
@@ -222,102 +251,98 @@ export function TemuanList() {
             </div>
             <p className="text-red-200 text-sm">Kelola temuan dan pantau status tindak lanjut (RTL).</p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) { form.reset(); setEditingId(null); }
-          }}>
-            <DialogTrigger asChild>
-              <Button
-                className="h-9 px-4 text-sm font-semibold gap-1.5 border-0"
-                style={{ background: "rgba(255,255,255,0.18)", color: "white" }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.28)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.18)"; }}
-              >
-                <Plus size={15} /> Catat Temuan Baru
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="text-lg font-bold" style={{ color: "#7C2D12" }}>
-                  {editingId ? "Edit Temuan" : "Catat Temuan Baru (5C)"}
-                </DialogTitle>
-              </DialogHeader>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-1">
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold text-slate-700">Referensi KKA</Label>
-                  <Select
-                    onValueChange={(val) => form.setValue("kkaId", val)}
-                    defaultValue={form.getValues("kkaId")}
-                  >
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Pilih KKA..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {kkas.map(k => (
-                        <SelectItem key={k.id} value={k.id}>{k.objective}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {form.formState.errors.kkaId && (
-                    <p className="text-xs text-red-500">{form.formState.errors.kkaId.message}</p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(["criteria", "condition", "cause", "consequence"] as const).map((field) => (
-                    <div key={field} className="space-y-1.5">
-                      <Label htmlFor={field} className="text-sm font-semibold text-slate-700">{fieldLabels[field]}</Label>
-                      <Textarea id={field} {...form.register(field)} rows={3} className="resize-none text-sm" />
-                      {form.formState.errors[field] && (
-                        <p className="text-xs text-red-500">{form.formState.errors[field]?.message}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="correctiveAction" className="text-sm font-semibold text-slate-700">{fieldLabels.correctiveAction}</Label>
-                  <Textarea id="correctiveAction" {...form.register("correctiveAction")} rows={3} className="resize-none text-sm" />
-                  {form.formState.errors.correctiveAction && (
-                    <p className="text-xs text-red-500">{form.formState.errors.correctiveAction?.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold text-slate-700">Status RTL</Label>
-                  <Select
-                    onValueChange={(val) => form.setValue("status", val as TemuanFormValues["status"])}
-                    defaultValue={form.getValues("status")}
-                  >
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Pilih Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Open">Open</SelectItem>
-                      <SelectItem value="In Progress">In Progress</SelectItem>
-                      <SelectItem value="Closed">Closed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Batal</Button>
-                  <Button
-                    type="submit"
-                    disabled={form.formState.isSubmitting}
-                    style={{ background: "linear-gradient(135deg, #7C2D12, #DC2626)" }}
-                    className="text-white border-0"
-                  >
-                    {form.formState.isSubmitting ? "Menyimpan..." : "Simpan Temuan"}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+          {hasPermission("temuan.create") && (
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) { form.reset(); setEditingId(null); }
+            }}>
+              <DialogTrigger asChild>
+                <Button
+                  className="h-9 px-4 text-sm font-semibold gap-1.5 border-0"
+                  style={{ background: "rgba(255,255,255,0.18)", color: "white" }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.28)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.18)"; }}
+                >
+                  <Plus size={15} /> Catat Temuan Baru
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-lg font-bold" style={{ color: "#7C2D12" }}>
+                    {editingId ? "Edit Temuan" : "Catat Temuan Baru (5C)"}
+                  </DialogTitle>
+                </DialogHeader>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-1">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold text-slate-700">Referensi KKA</Label>
+                    <Select
+                      onValueChange={(val) => form.setValue("kkaId", val || "")}
+                      defaultValue={form.getValues("kkaId")}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Pilih KKA..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {kkas.map(k => (
+                          <SelectItem key={k.id} value={k.id}>{k.objective}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {form.formState.errors.kkaId && (
+                      <p className="text-xs text-red-500">{form.formState.errors.kkaId.message}</p>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(["criteria", "condition", "cause", "consequence"] as const).map((field) => (
+                      <div key={field} className="space-y-1.5">
+                        <Label htmlFor={field} className="text-sm font-semibold text-slate-700">{fieldLabels[field]}</Label>
+                        <Textarea id={field} {...form.register(field)} rows={3} className="resize-none text-sm" />
+                        {form.formState.errors[field] && (
+                          <p className="text-xs text-red-500">{form.formState.errors[field]?.message}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="correctiveAction" className="text-sm font-semibold text-slate-700">{fieldLabels.correctiveAction}</Label>
+                    <Textarea id="correctiveAction" {...form.register("correctiveAction")} rows={3} className="resize-none text-sm" />
+                    {form.formState.errors.correctiveAction && (
+                      <p className="text-xs text-red-500">{form.formState.errors.correctiveAction?.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold text-slate-700">Status RTL</Label>
+                    <Select
+                      onValueChange={(val) => form.setValue("status", val as TemuanFormValues["status"])}
+                      defaultValue={form.getValues("status")}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Pilih Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Open">Open</SelectItem>
+                        <SelectItem value="In Progress">In Progress</SelectItem>
+                        <SelectItem value="Closed">Closed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Batal</Button>
+                    <Button
+                      type="submit"
+                      disabled={form.formState.isSubmitting}
+                      style={{ background: "linear-gradient(135deg, #7C2D12, #DC2626)" }}
+                      className="text-white border-0"
+                    >
+                      {form.formState.isSubmitting ? "Menyimpan..." : "Simpan Temuan"}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
-
-      {/* Summary chips */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         {[
           { label: "Total Temuan", value: data.length, color: "#0369A1", bg: "#E0F2FE" },
@@ -334,8 +359,6 @@ export function TemuanList() {
           </div>
         ))}
       </div>
-
-      {/* Table */}
       <div
         className="bg-white rounded-2xl overflow-hidden"
         style={{ border: "1px solid #DBEAFE", boxShadow: "0 2px 12px rgba(12,74,110,0.06)" }}
