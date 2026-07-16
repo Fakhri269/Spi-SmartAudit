@@ -19,9 +19,9 @@ export function LaporanAudit() {
       setLoading(true);
       try {
         const [kkaRes, temuanRes, branchRes] = await Promise.all([
-          supabase.from("kka").select("*").is("deleted_at", null),
-          supabase.from("temuan").select("*").is("deleted_at", null),
-          supabase.from("branches").select("id, name").is("deleted_at", null),
+          supabase.from("kka").select("*"),
+          supabase.from("findings").select("*"),
+          supabase.from("branches").select("id, name"),
         ]);
         
         if (kkaRes.error) throw kkaRes.error;
