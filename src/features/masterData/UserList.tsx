@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { logAudit } from "@/utils/audit";
 import { toast } from "sonner";
-import { ShieldAlert, Edit, Trash2, Plus, UserPlus } from "lucide-react";
+import { ShieldAlert, Edit, Trash2, UserPlus } from "lucide-react";
 
 export function UserList() {
   const { hasPermission, profile, user, role } = useAuth();
@@ -299,7 +299,7 @@ export function UserList() {
             </div>
             <div>
               <Label style={{ marginBottom: 8, display: "block" }}>Penempatan Cabang (Opsional)</Label>
-              <Select value={editingUser?.branchId || "none"} onValueChange={(val) => setEditingUser(prev => prev ? { ...prev, branchId: val === "none" ? undefined : val } : null)}>
+              <Select value={editingUser?.branchId || "none"} onValueChange={(val) => setEditingUser(prev => prev ? { ...prev, branchId: val === "none" ? null : val } : null)}>
                 <SelectTrigger><SelectValue placeholder="Pilih cabang" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">-- Pusat / Tidak Ada Cabang --</SelectItem>

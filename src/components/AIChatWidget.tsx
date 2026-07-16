@@ -14,7 +14,6 @@ export function AIChatWidget() {
     { role: "assistant", content: "Halo! Saya AI Assistant SPI SmartAudit. Ada yang bisa saya bantu hari ini?" }
   ]);
   const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [shrinkingIds, setShrinkingIds] = useState<Set<number>>(new Set());
   const prevMessagesRef = useRef<Message[]>([]);
@@ -108,7 +107,7 @@ export function AIChatWidget() {
         { role: "assistant", content: "" }
       ]);
       
-      setIsLoading(false); // Enable scrolling/UI while streaming
+      // setIsLoading(false) — streaming handles this naturally
 
       while (true) {
         const { value, done } = await reader.read();
