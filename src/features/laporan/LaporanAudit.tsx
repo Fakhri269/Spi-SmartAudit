@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "@/config/firebase";
+import { supabase } from "@/config/supabase";
 import { FileText, Printer, Download, TrendingUp, AlertTriangle, CheckCircle, BarChart2, ChevronDown, ChevronUp } from "lucide-react";
 import type { KKA } from "@/features/kka/KKAList";
 import type { Temuan } from "@/features/findings/TemuanList";
@@ -19,16 +18,39 @@ export function LaporanAudit() {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        const [kkaSnap, temuanSnap, branchSnap] = await Promise.all([
-          getDocs(collection(db, "kka")),
-          getDocs(collection(db, "temuan")),
-          getDocs(collection(db, "branches")),
+        const [kkaRes, temuanRes, branchRes] = await Promise.all([
+          supabase.from("kka").select("*").is("deleted_at", null),
+          supabase.from("temuan").select("*").is("deleted_at", null),
+          supabase.from("branches").select("id, name").is("deleted_at", null),
         ]);
-        setKkas(kkaSnap.docs.map(d => ({ id: d.id, ...d.data() } as KKA)));
-        setTemuans(temuanSnap.docs.map(d => ({ id: d.id, ...d.data() } as Temuan)));
-        setBranches(branchSnap.docs.map(d => ({ id: d.id, ...d.data() } as Branch)));
+        
+        if (kkaRes.error) throw kkaRes.error;
+        if (temuanRes.error) throw temuanRes.error;
+        if (branchRes.error) throw branchRes.error;
+
+        setKkas((kkaRes.data || []).map(d => ({ 
+          id: d.id, 
+          suratTugasId: d.surat_tugas_id,
+          auditorId: d.auditor_id,
+          branchId: d.branch_id,
+          title: d.title,
+          description: d.description,
+          status: d.status,
+          temuanCount: d.temuan_count || 0
+        } as unknown as KKA)));
+        
+        setTemuans((temuanRes.data || []).map(d => ({ 
+          id: d.id,
+          kkaId: d.kka_id,
+          title: d.title,
+          description: d.description,
+          riskLevel: d.risk_level,
+          status: d.status
+        } as unknown as Temuan)));
+        
+        setBranches(branchRes.data || []);
       } catch (err) {
-        console.error(err);
+        console.error("Gagal mengambil data laporan:", err);
       } finally {
         setLoading(false);
       }
