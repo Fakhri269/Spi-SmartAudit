@@ -15,7 +15,7 @@ export interface UserProfile {
   email: string;
   displayName: string;
   roleId: string;
-  branchId?: string;
+  branchId?: string | null;
   isActive: boolean;
 }
 

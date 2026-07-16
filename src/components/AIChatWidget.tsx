@@ -82,7 +82,6 @@ export function AIChatWidget() {
     ];
     
     setMessages(newMessages);
-    setIsLoading(true);
 
     try {
       const response = await fetch("https://spi-smartaudit.fakhriid274.workers.dev", {
@@ -136,7 +135,7 @@ export function AIChatWidget() {
         { role: "assistant", content: "Maaf, terjadi kesalahan saat menghubungi server AI. Silakan coba lagi." }
       ]);
     } finally {
-      setIsLoading(false);
+      // streaming handled naturally
     }
   };
 
