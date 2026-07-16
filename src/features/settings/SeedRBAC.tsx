@@ -172,7 +172,7 @@ export function SeedRBAC() {
         {predefinedRoles.map(role => (
           <div key={role.id} style={{ padding: "14px 16px", borderRadius: 10, border: "1px solid #E2E8F0", background: "#F8FAFC" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <Shield size={14} style={{ color: "#0369A1", flexShrink: 0 }} />
+              <Shield size={14} style={{ color: "#0284C7", flexShrink: 0 }} />
               <span style={{ fontWeight: 600, fontSize: 14, color: "#0F172A" }}>{role.name}</span>
               <span style={{ marginLeft: "auto", fontSize: 11, padding: "2px 6px", borderRadius: 4, background: "#DBEAFE", color: "#1D4ED8", fontWeight: 600 }}>{role.permissions.length} perm</span>
             </div>
@@ -181,7 +181,7 @@ export function SeedRBAC() {
         ))}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-        <Button onClick={handleSeed} disabled={loading || adminLoading} style={{ background: loading ? "#94A3B8" : "linear-gradient(135deg, #0C4A6E, #0369A1)", color: "white", border: "none", display: "flex", alignItems: "center", gap: 8, fontWeight: 600, padding: "10px 20px" }}>
+        <Button onClick={handleSeed} disabled={loading || adminLoading} style={{ background: loading ? "#94A3B8" : "linear-gradient(135deg, #0EA5E9, #0284C7)", color: "white", border: "none", display: "flex", alignItems: "center", gap: 8, fontWeight: 600, padding: "10px 20px" }}>
           {loading ? <RefreshCw size={14} style={{ animation: "spin 1s linear infinite" }} /> : <Database size={14} />}
           {loading ? "Memproses..." : "Inisialisasi Role Default"}
         </Button>

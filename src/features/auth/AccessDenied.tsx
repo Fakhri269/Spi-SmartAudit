@@ -91,7 +91,7 @@ export function AccessDenied() {
         }}
       >
         <span style={{ fontSize: 12, color: "#94A3B8" }}>Role Anda:</span>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#0369A1" }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "#0284C7" }}>
           {role?.name || "Viewer"}
         </span>
       </div>
@@ -137,7 +137,7 @@ export function AccessDenied() {
             padding: "10px 20px",
             borderRadius: 10,
             border: "none",
-            background: "linear-gradient(135deg, #0C4A6E, #0369A1)",
+            background: "linear-gradient(135deg, #0EA5E9, #0284C7)",
             color: "white",
             fontSize: 13.5,
             fontWeight: 600,

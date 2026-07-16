@@ -74,3 +74,100 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom Webkit Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3); /* Slate 400 with opacity */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.6);
+}
+
+/* Scrollbar for sidebar specifically */
+aside ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+aside ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* AI Chat Animations */
+@keyframes chatMsgEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.chat-msg-animate {
+  animation: chatMsgEnter 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* AI Loading Circle Grow */
+@keyframes aiLoadingGrow {
+  0%   { transform: scale(0.3); opacity: 0.5; }
+  60%  { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
+@keyframes aiLoadingShrinkOut {
+  0%   { transform: scale(1);   opacity: 1; }
+  100% { transform: scale(0.3); opacity: 0; }
+}
+
+.ai-loading-circle {
+  animation: aiLoadingGrow 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.ai-loading-shrink {
+  animation: aiLoadingShrinkOut 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes aiLoadingAppear {
+  0%   { transform: scale(0.3); opacity: 0; }
+  60%  { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
+.ai-loading-appear {
+  animation: aiLoadingAppear 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Chat Markdown Styles */
+.chat-markdown p {
+  margin: 0 0 8px 0;
+}
+.chat-markdown p:last-child {
+  margin-bottom: 0;
+}
+.chat-markdown strong {
+  font-weight: 700;
+}
+.chat-markdown ul {
+  margin: 4px 0 4px 20px;
+  padding: 0;
+  list-style-type: disc;
+}
+.chat-markdown ol {
+  margin: 4px 0 4px 20px;
+  padding: 0;
+  list-style-type: decimal;
+}
+.chat-markdown li {
+  margin-bottom: 2px;
+}

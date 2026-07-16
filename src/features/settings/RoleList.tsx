@@ -120,7 +120,7 @@ export function RoleList() {
           <p style={{ fontSize: 13, color: "#64748B", margin: "4px 0 0" }}>Atur peran dan izin akses pengguna dalam sistem.</p>
         </div>
         {hasPermission("role.create") && (
-          <Button onClick={handleOpenAdd} style={{ background: "linear-gradient(135deg, #0C4A6E, #0369A1)", color: "white", border: "none", display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
+          <Button onClick={handleOpenAdd} style={{ background: "linear-gradient(135deg, #0EA5E9, #0284C7)", color: "white", border: "none", display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
             <Plus size={15} /> Tambah Role
           </Button>
         )}
@@ -167,7 +167,7 @@ export function RoleList() {
                   <div style={{ display: "flex", gap: 4 }}>
                     {hasPermission("role.update") && (
                       <button onClick={() => handleOpenEdit(r)} style={{ width: 30, height: 30, borderRadius: 6, border: "1px solid #BAE6FD", background: "#F0F9FF", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <Edit size={13} style={{ color: "#0369A1" }} />
+                        <Edit size={13} style={{ color: "#0284C7" }} />
                       </button>
                     )}
                     {hasPermission("role.delete") && !r.isSystemRole && (
@@ -209,7 +209,7 @@ export function RoleList() {
             </div>
             <div>
               <Label style={{ fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 8, display: "block" }}>
-                Hak Akses — <span style={{ color: "#0369A1" }}>{(editingRole?.permissions || []).length} dipilih</span>
+                Hak Akses — <span style={{ color: "#0284C7" }}>{(editingRole?.permissions || []).length} dipilih</span>
               </Label>
               <div style={{ maxHeight: 320, overflowY: "auto", border: "1px solid #E2E8F0", borderRadius: 8 }}>
                 {ALL_PERMISSIONS.map((group, gi) => {
@@ -239,7 +239,7 @@ export function RoleList() {
           <DialogFooter style={{ marginTop: 8 }}>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Tutup</Button>
             {!editingRole?.isSystemRole && (
-              <Button onClick={handleSave} disabled={isSaving} style={{ background: "linear-gradient(135deg, #0C4A6E, #0369A1)", color: "white", border: "none", fontWeight: 600 }}>
+              <Button onClick={handleSave} disabled={isSaving} style={{ background: "linear-gradient(135deg, #0EA5E9, #0284C7)", color: "white", border: "none", fontWeight: 600 }}>
                 {isSaving ? "Menyimpan..." : "Simpan Role"}
               </Button>
             )}

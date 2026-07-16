@@ -95,13 +95,13 @@ export function AuditorList() {
 
   const levelColors: Record<Auditor["level"], { color: string; bg: string }> = {
     Lead: { color: "#7C3AED", bg: "#EDE9FE" },
-    Senior: { color: "#0369A1", bg: "#E0F2FE" },
+    Senior: { color: "#0284C7", bg: "#E0F2FE" },
     Junior: { color: "#64748B", bg: "#F1F5F9" },
   };
 
   const columns: ColumnDef<Auditor>[] = [
-    { accessorKey: "nip", header: "NIP", cell: ({ row }) => <span style={{ fontFamily: "monospace", fontSize: 13, color: "#0369A1", fontWeight: 600 }}>{row.getValue("nip")}</span> },
-    { accessorKey: "name", header: "Nama Auditor", cell: ({ row }) => <div style={{ display: "flex", alignItems: "center", gap: 8 }}><ShieldCheck size={14} style={{ color: "#0369A1" }} /><span style={{ fontWeight: 600, color: "#0F172A" }}>{row.getValue("name")}</span></div> },
+    { accessorKey: "nip", header: "NIP", cell: ({ row }) => <span style={{ fontFamily: "monospace", fontSize: 13, color: "#0284C7", fontWeight: 600 }}>{row.getValue("nip")}</span> },
+    { accessorKey: "name", header: "Nama Auditor", cell: ({ row }) => <div style={{ display: "flex", alignItems: "center", gap: 8 }}><ShieldCheck size={14} style={{ color: "#0284C7" }} /><span style={{ fontWeight: 600, color: "#0F172A" }}>{row.getValue("name")}</span></div> },
     { accessorKey: "jabatan", header: "Jabatan" },
     { accessorKey: "sertifikasi", header: "Sertifikasi", cell: ({ row }) => <div style={{ display: "flex", alignItems: "center", gap: 6 }}><Award size={13} style={{ color: "#D97706" }} /><span style={{ fontSize: 13 }}>{row.getValue("sertifikasi") || "-"}</span></div> },
     {
@@ -116,7 +116,7 @@ export function AuditorList() {
       id: "actions", header: "Aksi",
       cell: ({ row }) => (
         <div style={{ display: "flex", gap: 6 }}>
-          {hasPermission("master.update") && <Button variant="outline" size="sm" onClick={() => handleOpenEdit(row.original)} style={{ width: 32, height: 32, padding: 0, borderColor: "#BAE6FD" }}><Edit size={13} style={{ color: "#0369A1" }} /></Button>}
+          {hasPermission("master.update") && <Button variant="outline" size="sm" onClick={() => handleOpenEdit(row.original)} style={{ width: 32, height: 32, padding: 0, borderColor: "#BAE6FD" }}><Edit size={13} style={{ color: "#0284C7" }} /></Button>}
           {hasPermission("master.delete") && <Button variant="outline" size="sm" onClick={() => handleDelete(row.original.id)} style={{ width: 32, height: 32, padding: 0, borderColor: "#FECACA" }}><Trash2 size={13} style={{ color: "#EF4444" }} /></Button>}
         </div>
       ),
@@ -128,20 +128,20 @@ export function AuditorList() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-            <ShieldCheck size={18} style={{ color: "#0369A1" }} />
+            <ShieldCheck size={18} style={{ color: "#0284C7" }} />
             <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", margin: 0 }}>Data Auditor</h3>
           </div>
           <p style={{ fontSize: 13, color: "#94A3B8", margin: 0 }}>Kelola data tim auditor internal SPI.</p>
         </div>
         {hasPermission("master.create") && (
-          <Button onClick={handleOpenAdd} style={{ background: "linear-gradient(135deg, #0C4A6E, #0369A1)", color: "white", border: "none", display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
+          <Button onClick={handleOpenAdd} style={{ background: "linear-gradient(135deg, #0EA5E9, #0284C7)", color: "white", border: "none", display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
             <Plus size={15} /> Tambah Auditor
           </Button>
         )}
       </div>
       {loading ? (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 48, gap: 12 }}>
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: "#0369A1" }} />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: "#0284C7" }} />
           <p style={{ color: "#94A3B8", fontSize: 13 }}>Memuat data...</p>
         </div>
       ) : <DataTable columns={columns} data={data} searchKey="name" />}
@@ -176,7 +176,7 @@ export function AuditorList() {
             </div>
             <DialogFooter style={{ marginTop: 8 }}>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Batal</Button>
-              <Button type="submit" disabled={isSubmitting} style={{ background: "#0369A1", color: "white" }}>{isSubmitting ? "Menyimpan..." : "Simpan"}</Button>
+              <Button type="submit" disabled={isSubmitting} style={{ background: "#0284C7", color: "white" }}>{isSubmitting ? "Menyimpan..." : "Simpan"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

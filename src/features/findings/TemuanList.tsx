@@ -58,13 +58,13 @@ export function TemuanList() {
     setLoading(true);
     try {
       const [{ data: kkaData, error: kkaErr }, { data: findingsData, error: findErr }] = await Promise.all([
-        supabase.from("kka").select("id, objective").is("deleted_at", null),
+        supabase.from("kka").select("id, tujuan, judul").is("deleted_at", null),
         supabase.from("findings").select("*").is("deleted_at", null)
       ]);
       if (kkaErr) throw kkaErr;
       if (findErr) throw findErr;
 
-      setKkas((kkaData || []).map(k => ({ id: k.id, objective: k.objective })));
+      setKkas((kkaData || []).map(k => ({ id: k.id, objective: k.tujuan || k.judul || "-" })));
       setData((findingsData || []).map(f => ({
         id: f.id,
         kkaId: f.kka_id || "",
@@ -345,7 +345,7 @@ export function TemuanList() {
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         {[
-          { label: "Total Temuan", value: data.length, color: "#0369A1", bg: "#E0F2FE" },
+          { label: "Total Temuan", value: data.length, color: "#0284C7", bg: "#E0F2FE" },
           { label: "Terbuka", value: data.filter(d => d.status === "Open").length, color: "#EF4444", bg: "#FEF2F2" },
           { label: "In Progress", value: data.filter(d => d.status === "In Progress").length, color: "#D97706", bg: "#FEF9C3" },
           { label: "Selesai", value: data.filter(d => d.status === "Closed").length, color: "#0D9488", bg: "#CCFBF1" },

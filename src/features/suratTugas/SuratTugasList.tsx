@@ -136,7 +136,7 @@ export function SuratTugasList() {
       header: "Nomor Surat",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <FileSignature size={15} style={{ color: "#0369A1" }} />
+          <FileSignature size={15} style={{ color: "#0284C7" }} />
           <span className="font-semibold" style={{ color: "#0F172A" }}>{row.getValue("nomor")}</span>
         </div>
       ),
@@ -181,7 +181,7 @@ export function SuratTugasList() {
                 className="h-8 w-8 p-0"
                 style={{ borderColor: "#BAE6FD" }}
               >
-                <Edit size={14} style={{ color: "#0369A1" }} />
+                <Edit size={14} style={{ color: "#0284C7" }} />
               </Button>
             )}
             {hasPermission("assignment.delete") && (
@@ -205,7 +205,7 @@ export function SuratTugasList() {
     <div className="fade-in-up" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div
         className="rounded-2xl text-white relative overflow-hidden"
-        style={{ background: "linear-gradient(135deg, #0C4A6E, #0369A1)", boxShadow: "0 8px 24px rgba(3,105,161,0.2)", padding: 24 }}
+        style={{ background: "linear-gradient(135deg, #0EA5E9, #0284C7)", boxShadow: "0 8px 24px rgba(3,105,161,0.2)", padding: 24 }}
       >
         <div className="absolute -right-10 -top-10 rounded-full" style={{ width: 150, height: 150, background: "rgba(255,255,255,0.06)" }} />
         <div style={{ position: "relative", zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -229,7 +229,7 @@ export function SuratTugasList() {
       <div className="bg-white rounded-2xl" style={{ border: "1px solid #E2E8F0", boxShadow: "0 4px 12px rgba(0,0,0,0.02)", padding: 24 }}>
         {loading ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 48, gap: 12 }}>
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: "#0369A1" }} />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: "#0284C7" }} />
             <p className="text-sm text-slate-500">Memuat data surat tugas...</p>
           </div>
         ) : (
@@ -287,7 +287,7 @@ export function SuratTugasList() {
             </div>
             <DialogFooter className="mt-6">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Batal</Button>
-              <Button type="submit" disabled={isSubmitting} style={{ background: "#0369A1" }}>
+              <Button type="submit" disabled={isSubmitting} style={{ background: "#0284C7" }}>
                 {isSubmitting ? "Menyimpan..." : "Simpan Data"}
               </Button>
             </DialogFooter>

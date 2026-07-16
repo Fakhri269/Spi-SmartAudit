@@ -79,7 +79,7 @@ export function Pengaturan() {
       >
         <div style={{ position: "absolute", right: -30, top: -30, width: 150, height: 150, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
         <div style={{ position: "relative", zIndex: 10, display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 52, height: 52, borderRadius: "50%", background: "linear-gradient(135deg, #0369A1, #0891B2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700, color: "white", boxShadow: "0 0 0 3px rgba(56,189,248,0.25)" }}>
+          <div style={{ width: 52, height: 52, borderRadius: "50%", background: "linear-gradient(135deg, #0284C7, #0891B2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700, color: "white", boxShadow: "0 0 0 3px rgba(56,189,248,0.25)" }}>
             {(profile?.displayName || "U")[0].toUpperCase()}
           </div>
           <div>
@@ -110,7 +110,7 @@ export function Pengaturan() {
                   padding: "10px 14px", borderRadius: 10, border: "none",
                   cursor: "pointer", textAlign: "left", width: "100%",
                   fontSize: 13.5, fontWeight: isActive ? 600 : 500,
-                  color: isActive ? "#0369A1" : "#64748B",
+                  color: isActive ? "#0284C7" : "#64748B",
                   background: isActive ? "#E0F2FE" : "transparent",
                   transition: "all 0.15s",
                 }}
@@ -176,7 +176,7 @@ export function Pengaturan() {
                   <Input value={role?.name || profile?.roleId || "Viewer"} disabled style={{ marginTop: 6, background: "#F8FAFC", color: "#94A3B8" }} />
                 </div>
                 <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
-                  <Button onClick={handleSaveProfil} disabled={saving} style={{ background: "linear-gradient(135deg, #0C4A6E, #0369A1)", color: "white", border: "none", display: "flex", alignItems: "center", gap: 8, fontWeight: 600, opacity: saving ? 0.7 : 1 }}>
+                  <Button onClick={handleSaveProfil} disabled={saving} style={{ background: "linear-gradient(135deg, #0EA5E9, #0284C7)", color: "white", border: "none", display: "flex", alignItems: "center", gap: 8, fontWeight: 600, opacity: saving ? 0.7 : 1 }}>
                     <Save size={14} /> {saving ? "Menyimpan..." : "Simpan Perubahan"}
                   </Button>
                 </div>
@@ -209,7 +209,7 @@ export function Pengaturan() {
                       onClick={() => { n.set(!n.val); toast.success(`Notifikasi "${n.label}" ${!n.val ? "diaktifkan" : "dinonaktifkan"}`); }}
                       style={{
                         width: 44, height: 24, borderRadius: 12, border: "none", cursor: "pointer",
-                        background: n.val ? "#0369A1" : "#CBD5E1",
+                        background: n.val ? "#0284C7" : "#CBD5E1",
                         position: "relative", flexShrink: 0, transition: "background 0.2s",
                       }}
                     >
@@ -256,8 +256,8 @@ export function Pengaturan() {
                   </div>
                 ))}
                 <div style={{ padding: "12px 16px", borderRadius: 10, background: "#F0F9FF", border: "1px solid #BAE6FD", display: "flex", gap: 10 }}>
-                  <Shield size={16} style={{ color: "#0369A1", flexShrink: 0, marginTop: 1 }} />
-                  <p style={{ fontSize: 12.5, color: "#0369A1", margin: 0 }}>Password minimal 6 karakter. Gunakan kombinasi huruf, angka, dan simbol untuk keamanan optimal.</p>
+                  <Shield size={16} style={{ color: "#0284C7", flexShrink: 0, marginTop: 1 }} />
+                  <p style={{ fontSize: 12.5, color: "#0284C7", margin: 0 }}>Password minimal 6 karakter. Gunakan kombinasi huruf, angka, dan simbol untuk keamanan optimal.</p>
                 </div>
                 <Button onClick={handleChangePassword} style={{ alignSelf: "flex-start", background: "linear-gradient(135deg, #1E293B, #334155)", color: "white", border: "none", display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
                   <Lock size={14} /> Ubah Password

@@ -21,7 +21,7 @@ export function ProtectedRoute() {
           height: 40,
           borderRadius: "50%",
           border: "3px solid #E2E8F0",
-          borderTopColor: "#0369A1",
+          borderTopColor: "#0284C7",
           animation: "spin 0.8s linear infinite"
         }} />
         <p style={{ color: "#94A3B8", fontSize: 14 }}>Memuat sesi...</p>

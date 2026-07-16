@@ -102,13 +102,13 @@ export function SOPList() {
   };
 
   const kategoriColors: Record<SOP["kategori"], { color: string; bg: string }> = {
-    SOP: { color: "#0369A1", bg: "#E0F2FE" },
+    SOP: { color: "#0284C7", bg: "#E0F2FE" },
     Peraturan: { color: "#7C3AED", bg: "#EDE9FE" },
     SK: { color: "#B45309", bg: "#FEF3C7" },
   };
 
   const columns: ColumnDef<SOP>[] = [
-    { accessorKey: "kode", header: "Kode Dokumen", cell: ({ row }) => <span style={{ fontFamily: "monospace", fontSize: 12.5, color: "#0369A1", fontWeight: 700 }}>{row.getValue("kode")}</span> },
+    { accessorKey: "kode", header: "Kode Dokumen", cell: ({ row }) => <span style={{ fontFamily: "monospace", fontSize: 12.5, color: "#0284C7", fontWeight: 700 }}>{row.getValue("kode")}</span> },
     {
       accessorKey: "kategori", header: "Kategori",
       cell: ({ row }) => { const k = row.getValue("kategori") as SOP["kategori"]; const c = kategoriColors[k]; return <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 700, color: c.color, background: c.bg }}>{k}</span>; }
@@ -124,7 +124,7 @@ export function SOPList() {
       cell: ({ row }) => (
         <div style={{ display: "flex", gap: 6 }}>
           {hasPermission("master.update") && (
-            <Button variant="outline" size="sm" onClick={() => handleOpenEdit(row.original)} style={{ width: 32, height: 32, padding: 0, borderColor: "#BAE6FD" }}><Edit size={13} style={{ color: "#0369A1" }} /></Button>
+            <Button variant="outline" size="sm" onClick={() => handleOpenEdit(row.original)} style={{ width: 32, height: 32, padding: 0, borderColor: "#BAE6FD" }}><Edit size={13} style={{ color: "#0284C7" }} /></Button>
           )}
           {hasPermission("master.delete") && (
             <Button variant="outline" size="sm" onClick={() => handleDelete(row.original.id)} style={{ width: 32, height: 32, padding: 0, borderColor: "#FECACA" }}><Trash2 size={13} style={{ color: "#EF4444" }} /></Button>
@@ -139,13 +139,13 @@ export function SOPList() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-            <FileCode size={18} style={{ color: "#0369A1" }} />
+            <FileCode size={18} style={{ color: "#0284C7" }} />
             <h3 style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", margin: 0 }}>SOP & Peraturan</h3>
           </div>
           <p style={{ fontSize: 13, color: "#94A3B8", margin: 0 }}>Kelola dokumen SOP, peraturan, dan Surat Keputusan.</p>
         </div>
         {hasPermission("master.create") && (
-          <Button onClick={handleOpenAdd} style={{ background: "linear-gradient(135deg, #0C4A6E, #0369A1)", color: "white", border: "none", display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
+          <Button onClick={handleOpenAdd} style={{ background: "linear-gradient(135deg, #0EA5E9, #0284C7)", color: "white", border: "none", display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
             <Plus size={15} /> Tambah Dokumen
           </Button>
         )}
@@ -153,7 +153,7 @@ export function SOPList() {
 
       {loading ? (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 48, gap: 12 }}>
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: "#0369A1" }} />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: "#0284C7" }} />
           <p style={{ color: "#94A3B8", fontSize: 13 }}>Memuat data...</p>
         </div>
       ) : <DataTable columns={columns} data={data} searchKey="judul" />}
@@ -189,7 +189,7 @@ export function SOPList() {
             ))}
             <DialogFooter style={{ marginTop: 8 }}>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Batal</Button>
-              <Button type="submit" disabled={isSubmitting} style={{ background: "#0369A1", color: "white" }}>{isSubmitting ? "Menyimpan..." : "Simpan"}</Button>
+              <Button type="submit" disabled={isSubmitting} style={{ background: "#0284C7", color: "white" }}>{isSubmitting ? "Menyimpan..." : "Simpan"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

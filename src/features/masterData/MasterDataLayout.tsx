@@ -27,7 +27,7 @@ export function MasterDataLayout() {
       <div className="rounded-2xl text-white relative overflow-hidden"
         style={{
           padding: 24,
-          background: "linear-gradient(135deg, #0C4A6E 0%, #0369A1 100%)",
+          background: "linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)",
           boxShadow: "0 4px 20px rgba(12,74,110,0.18)",
         }}
       >
@@ -72,7 +72,7 @@ export function MasterDataLayout() {
                     textDecoration: "none",
                     whiteSpace: "nowrap",
                     color: isActive ? "white" : "#64748B",
-                    background: isActive ? "linear-gradient(135deg, #0C4A6E, #0369A1)" : "transparent",
+                    background: isActive ? "linear-gradient(135deg, #0EA5E9, #0284C7)" : "transparent",
                     boxShadow: isActive ? "0 2px 8px rgba(3,105,161,0.25)" : "none",
                   })}
                 >

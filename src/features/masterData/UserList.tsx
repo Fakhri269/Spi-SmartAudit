@@ -192,7 +192,7 @@ export function UserList() {
           <p style={{ fontSize: 14, color: "#64748B", margin: "4px 0 0" }}>Atur akses pengguna, role, dan penempatan cabang.</p>
         </div>
         {isAdmin && (
-          <Button onClick={openCreate} style={{ display: "flex", gap: 8, background: "#0369A1" }}>
+          <Button onClick={openCreate} style={{ display: "flex", gap: 8, background: "#0284C7" }}>
             <UserPlus size={16} /> Tambah Pengguna
           </Button>
         )}
@@ -233,7 +233,7 @@ export function UserList() {
                   {isAdmin && (
                     <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
                       <Button variant="ghost" size="icon" onClick={() => openEdit(u)} title="Edit">
-                        <Edit size={16} color="#0369A1" />
+                        <Edit size={16} color="#0284C7" />
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => confirmDelete(u.uid)} title="Hapus">
                         <Trash2 size={16} color="#EF4444" />
@@ -322,7 +322,7 @@ export function UserList() {
           </div>
           <DialogFooter style={{ marginTop: 16 }}>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Batal</Button>
-            <Button onClick={handleSave} style={{ background: "#0369A1" }}>Simpan</Button>
+            <Button onClick={handleSave} style={{ background: "#0284C7" }}>Simpan</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

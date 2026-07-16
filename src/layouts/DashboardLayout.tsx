@@ -12,10 +12,10 @@ import {
   ChevronRight,
   FileSignature,
   FolderOpen,
-  Droplets,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../features/auth/AuthContext";
+import { AIChatWidget } from "../components/AIChatWidget";
 
 export function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -84,9 +84,9 @@ export function DashboardLayout() {
         style={{
           width: sidebarOpen ? SIDEBAR_WIDTH : SIDEBAR_COLLAPSED,
           minWidth: sidebarOpen ? SIDEBAR_WIDTH : SIDEBAR_COLLAPSED,
-          background: "linear-gradient(180deg, #0F172A 0%, #0C1829 100%)",
-          borderRight: "1px solid rgba(56,189,248,0.08)",
-          boxShadow: "4px 0 24px rgba(0,0,0,0.25)",
+          background: "linear-gradient(180deg, #0EA5E9 0%, #0284C7 100%)",
+          borderRight: "none",
+          boxShadow: "4px 0 24px rgba(2,132,199,0.15)",
           transition: "width 0.28s cubic-bezier(0.4,0,0.2,1), min-width 0.28s cubic-bezier(0.4,0,0.2,1)",
           overflow: "hidden",
           display: "flex",
@@ -97,7 +97,7 @@ export function DashboardLayout() {
           position: "relative",
         }}
       >
-        {/* ── Brand / Logo ─────────────────────── */}
+        {/* ── Brand ─────────────────────── */}
         <div
           style={{
             display: "flex",
@@ -105,24 +105,31 @@ export function DashboardLayout() {
             gap: 14,
             padding: "0 20px",
             height: 64,
-            borderBottom: "1px solid rgba(255,255,255,0.05)",
+            borderBottom: "1px solid rgba(255,255,255,0.15)",
             flexShrink: 0,
           }}
         >
+          {/* Logo image restored */}
           <div
             style={{
-              width: 38,
-              height: 38,
-              borderRadius: 10,
-              background: "linear-gradient(135deg, #0369A1, #0891B2)",
-              boxShadow: "0 0 0 2px rgba(56,189,248,0.25), 0 4px 12px rgba(3,105,161,0.4)",
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              background: "white",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
+              overflow: "hidden",
+              padding: 4,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
             }}
           >
-            <Droplets size={18} color="white" />
+            <img
+              src="/PdamLogo.png"
+              alt="Tirta Kahuripan"
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
           </div>
           <div
             style={{
@@ -132,8 +139,8 @@ export function DashboardLayout() {
               overflow: "hidden",
             }}
           >
-            <p style={{ fontWeight: 700, color: "#F0F9FF", fontSize: 14, lineHeight: 1.2 }}>SPI SmartAudit</p>
-            <p style={{ fontSize: 11.5, color: "#38BDF8", marginTop: 2, letterSpacing: "0.02em" }}>Tirta Kahuripan</p>
+            <p style={{ fontWeight: 800, color: "#FFFFFF", fontSize: 15, lineHeight: 1.2, letterSpacing: "-0.01em" }}>Smart Audit SPI</p>
+            <p style={{ fontSize: 11.5, color: "#E0F2FE", marginTop: 2, fontWeight: 500 }}>Tirta Kahuripan</p>
           </div>
         </div>
 
@@ -163,14 +170,14 @@ export function DashboardLayout() {
                       fontSize: 10.5,
                       fontWeight: 700,
                       textTransform: "uppercase",
-                      letterSpacing: "0.12em",
-                      color: "#334155",
+                      letterSpacing: "0.1em",
+                      color: "rgba(255,255,255,0.7)",
                     }}
                   >
                     {group.group}
                   </span>
                 ) : (
-                  <div style={{ width: 24, height: 1, background: "rgba(255,255,255,0.08)" }} />
+                  <div style={{ width: 24, height: 2, background: "rgba(255,255,255,0.2)", borderRadius: 1 }} />
                 )}
               </div>
 
@@ -193,25 +200,25 @@ export function DashboardLayout() {
                       textDecoration: "none",
                       position: "relative",
                       background: active
-                        ? "linear-gradient(135deg, rgba(3,105,161,0.35), rgba(8,145,178,0.2))"
+                        ? "rgba(255,255,255,0.2)"
                         : "transparent",
                       border: active
-                        ? "1px solid rgba(56,189,248,0.2)"
+                        ? "1px solid rgba(255,255,255,0.3)"
                         : "1px solid transparent",
-                      color: active ? "#E0F2FE" : "#64748B",
+                      color: active ? "#FFFFFF" : "rgba(255,255,255,0.75)",
                       transition: "all 0.15s ease",
                     }}
                     onMouseEnter={(e) => {
                       if (!active) {
-                        (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)";
-                        (e.currentTarget as HTMLElement).style.color = "#94A3B8";
-                        (e.currentTarget as HTMLElement).style.border = "1px solid rgba(255,255,255,0.06)";
+                        (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.08)";
+                        (e.currentTarget as HTMLElement).style.color = "#FFFFFF";
+                        (e.currentTarget as HTMLElement).style.border = "1px solid rgba(255,255,255,0.1)";
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!active) {
                         (e.currentTarget as HTMLElement).style.background = "transparent";
-                        (e.currentTarget as HTMLElement).style.color = "#64748B";
+                        (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.75)";
                         (e.currentTarget as HTMLElement).style.border = "1px solid transparent";
                       }
                     }}
@@ -224,18 +231,18 @@ export function DashboardLayout() {
                           left: -13,
                           top: "50%",
                           transform: "translateY(-50%)",
-                          width: 3,
+                          width: 4,
                           height: 20,
                           borderRadius: "0 4px 4px 0",
-                          background: "linear-gradient(180deg, #38BDF8, #0891B2)",
-                          boxShadow: "0 0 8px rgba(56,189,248,0.5)",
+                          background: "#FFFFFF",
+                          boxShadow: "0 0 8px rgba(255,255,255,0.5)",
                         }}
                       />
                     )}
                     <Icon
                       size={17}
                       style={{
-                        color: active ? "#38BDF8" : "inherit",
+                        color: active ? "#FFFFFF" : "inherit",
                         flexShrink: 0,
                       }}
                     />
@@ -258,8 +265,8 @@ export function DashboardLayout() {
                           width: 6,
                           height: 6,
                           borderRadius: "50%",
-                          background: "#38BDF8",
-                          boxShadow: "0 0 6px rgba(56,189,248,0.8)",
+                          background: "#FFFFFF",
+                          boxShadow: "0 0 6px rgba(255,255,255,0.5)",
                           flexShrink: 0,
                         }}
                       />
@@ -274,7 +281,7 @@ export function DashboardLayout() {
         {/* ── User Area ─────────────────────────── */}
         <div
           style={{
-            borderTop: "1px solid rgba(255,255,255,0.05)",
+            borderTop: "1px solid rgba(255,255,255,0.15)",
             padding: 12,
             flexShrink: 0,
           }}
@@ -288,8 +295,8 @@ export function DashboardLayout() {
               borderRadius: 10,
               padding: "8px 10px",
               marginBottom: 8,
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.06)",
+              background: "rgba(255,255,255,0.1)",
+              border: "1px solid rgba(255,255,255,0.15)",
               overflow: "hidden",
             }}
           >
@@ -299,14 +306,14 @@ export function DashboardLayout() {
                 width: 32,
                 height: 32,
                 borderRadius: "50%",
-                background: "linear-gradient(135deg, #0369A1, #38BDF8)",
+                background: "white",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 12,
+                fontSize: 13,
                 fontWeight: 700,
-                color: "white",
-                boxShadow: "0 0 0 2px rgba(56,189,248,0.2)",
+                color: "#0284C7",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
               }}
             >
               {initials}
@@ -317,7 +324,7 @@ export function DashboardLayout() {
                   style={{
                     fontSize: 13,
                     fontWeight: 600,
-                    color: "#F0F9FF",
+                    color: "#FFFFFF",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -329,7 +336,7 @@ export function DashboardLayout() {
                 <p
                   style={{
                     fontSize: 11,
-                    color: "#38BDF8",
+                    color: "rgba(255,255,255,0.8)",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -354,20 +361,20 @@ export function DashboardLayout() {
               padding: "8px 12px",
               borderRadius: 8,
               fontSize: 12.5,
-              fontWeight: 500,
-              border: "1px solid rgba(239,68,68,0.15)",
+              fontWeight: 600,
+              border: "1px solid rgba(255,255,255,0.2)",
               cursor: "pointer",
-              color: "#F87171",
-              background: "rgba(239,68,68,0.06)",
+              color: "#FFFFFF",
+              background: "rgba(255,255,255,0.1)",
               transition: "all 0.15s",
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.14)";
-              (e.currentTarget as HTMLButtonElement).style.border = "1px solid rgba(239,68,68,0.3)";
+              (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.9)";
+              (e.currentTarget as HTMLButtonElement).style.border = "1px solid #EF4444";
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.06)";
-              (e.currentTarget as HTMLButtonElement).style.border = "1px solid rgba(239,68,68,0.15)";
+              (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.1)";
+              (e.currentTarget as HTMLButtonElement).style.border = "1px solid rgba(255,255,255,0.2)";
             }}
           >
             <LogOut size={14} style={{ flexShrink: 0 }} />
@@ -424,16 +431,6 @@ export function DashboardLayout() {
 
           {/* Right */}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {/* Logo */}
-            <img
-              src="/logo-tirta-kahuripan.svg"
-              alt="Tirta Kahuripan"
-              style={{ height: 28, objectFit: "contain" }}
-              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-            />
-
-            <div style={{ width: 1, height: 20, background: "#E2E8F0", margin: "0 4px" }} />
-
             {/* Bell */}
             <button
               style={{
@@ -474,7 +471,7 @@ export function DashboardLayout() {
                   width: 34,
                   height: 34,
                   borderRadius: "50%",
-                  background: "linear-gradient(135deg, #0C4A6E, #0891B2)",
+                  background: "linear-gradient(135deg, #0EA5E9, #0891B2)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -490,7 +487,7 @@ export function DashboardLayout() {
                 <p style={{ fontSize: 13.5, fontWeight: 600, color: "#0F172A", lineHeight: 1.2 }}>
                   {profile?.displayName || "User"}
                 </p>
-                <p style={{ fontSize: 11.5, color: "#0369A1", marginTop: 1 }}>
+                <p style={{ fontSize: 11.5, color: "#0284C7", marginTop: 1 }}>
                   {role?.name || profile?.roleId || "Viewer"}
                 </p>
               </div>
@@ -503,6 +500,9 @@ export function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* AI Chat Widget */}
+      <AIChatWidget />
     </div>
   );
 }

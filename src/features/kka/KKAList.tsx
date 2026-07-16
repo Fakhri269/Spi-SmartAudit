@@ -61,10 +61,10 @@ export function KKAList() {
       setBranches((bData || []).map(b => ({ id: b.id, name: b.name })));
       setData((kData || []).map(k => ({
         id: k.id,
-        auditId: k.audit_id || "",
-        branchId: k.branch_id || "",
-        objective: k.objective,
-        scope: k.scope,
+        auditId: k.audit_program_id || "",
+        branchId: "",
+        objective: k.tujuan || k.judul || "-",
+        scope: k.ruang_lingkup || "-",
         status: k.status,
         createdAt: k.created_at,
       } as KKA)));
@@ -80,24 +80,28 @@ export function KKAList() {
 
   const onSubmit = async (values: KKAFormValues) => {
     try {
-      const payload = {
-        branch_id: values.branchId,
-        objective: values.objective,
-        scope: values.scope,
+      const basePayload = {
+        tujuan: values.objective,
+        ruang_lingkup: values.scope,
         status: values.status,
       };
 
       if (editingId) {
         if (!hasPermission("kka.update")) throw new Error("Unauthorized");
-        const { error } = await supabase.from("kka").update(payload).eq("id", editingId);
+        const { error } = await supabase.from("kka").update(basePayload).eq("id", editingId);
         if (error) throw error;
-        await logAudit({ action: "UPDATE", collectionName: "kka", docId: editingId, changes: JSON.stringify(payload), userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
+        await logAudit({ action: "UPDATE", collectionName: "kka", docId: editingId, changes: JSON.stringify(basePayload), userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("KKA berhasil diperbarui");
       } else {
         if (!hasPermission("kka.create")) throw new Error("Unauthorized");
-        const { data: newDoc, error } = await supabase.from("kka").insert([payload]).select().single();
+        const insertPayload = {
+          ...basePayload,
+          nomor: `KKA-${Math.floor(Math.random() * 100000)}`,
+          judul: values.objective.substring(0, 50) || "KKA Baru",
+        };
+        const { data: newDoc, error } = await supabase.from("kka").insert([insertPayload]).select().single();
         if (error) throw error;
-        await logAudit({ action: "CREATE", collectionName: "kka", docId: newDoc.id, changes: JSON.stringify(payload), userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
+        await logAudit({ action: "CREATE", collectionName: "kka", docId: newDoc.id, changes: JSON.stringify(insertPayload), userId: user?.id || "", userEmail: profile?.email || "", userName: profile?.displayName || "" });
         toast.success("KKA baru berhasil ditambahkan");
       }
       setIsDialogOpen(false);
@@ -146,7 +150,7 @@ export function KKAList() {
         const branch = branches.find(b => b.id === bId);
         return (
           <div className="flex items-center gap-1.5">
-            <GitBranch size={13} style={{ color: "#0369A1" }} />
+            <GitBranch size={13} style={{ color: "#0284C7" }} />
             <span className="font-semibold text-sm text-slate-700">{branch ? branch.name : "-"}</span>
           </div>
         );
@@ -218,7 +222,7 @@ export function KKAList() {
         className="rounded-2xl text-white relative overflow-hidden"
         style={{
           padding: 24,
-          background: "linear-gradient(135deg, #0C4A6E 0%, #0369A1 100%)",
+          background: "linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)",
           boxShadow: "0 4px 20px rgba(12,74,110,0.18)",
         }}
       >
@@ -248,7 +252,7 @@ export function KKAList() {
               </DialogTrigger>
               <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
-                  <DialogTitle className="text-lg font-bold" style={{ color: "#0C4A6E" }}>
+                  <DialogTitle className="text-lg font-bold" style={{ color: "#0EA5E9" }}>
                     {editingId ? "Edit KKA" : "Buat KKA Baru"}
                   </DialogTitle>
                 </DialogHeader>
@@ -307,7 +311,7 @@ export function KKAList() {
                     <Button
                       type="submit"
                       disabled={form.formState.isSubmitting}
-                      style={{ background: "linear-gradient(135deg, #0C4A6E, #0369A1)" }}
+                      style={{ background: "linear-gradient(135deg, #0EA5E9, #0284C7)" }}
                       className="text-white border-0"
                     >
                       {form.formState.isSubmitting ? "Menyimpan..." : "Simpan"}
@@ -322,7 +326,7 @@ export function KKAList() {
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         {[
-          { label: "Total KKA", value: data.length, color: "#0369A1", bg: "#E0F2FE" },
+          { label: "Total KKA", value: data.length, color: "#0284C7", bg: "#E0F2FE" },
           { label: "Selesai", value: data.filter(d => d.status === "Selesai").length, color: "#0D9488", bg: "#CCFBF1" },
           { label: "Review", value: data.filter(d => d.status === "Review").length, color: "#D97706", bg: "#FEF9C3" },
           { label: "Draft", value: data.filter(d => d.status === "Draft").length, color: "#64748B", bg: "#F1F5F9" },
@@ -343,7 +347,7 @@ export function KKAList() {
       >
         {loading ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 64, gap: 12 }}>
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: "#0369A1" }} />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: "#0284C7" }} />
             <p className="text-sm text-slate-500">Memuat data...</p>
           </div>
         ) : (

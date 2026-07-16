@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { supabase } from "@/config/supabase";
 import { useNavigate, useLocation } from "react-router-dom";
-import { AlertCircle, Eye, EyeOff, Lock, Mail, Loader2, ShieldCheck } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -35,134 +42,110 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen flex font-sans">
-      {/* ── LEFT PANEL ─────────────────────────────────────── */}
-      <div
-        className="hidden lg:flex lg:w-[45%] flex-col justify-between relative overflow-hidden"
-        style={{
-          background: "linear-gradient(135deg, #020617 0%, #082F49 50%, #0369A1 100%)",
-          padding: "3rem",
-        }}
-      >
-        {/* Glow Effects */}
-        <div
-          className="absolute -top-[20%] -left-[10%] w-[70%] h-[70%] rounded-full opacity-20 blur-[100px] pointer-events-none"
-          style={{ background: "#38BDF8" }}
+    <div className="min-h-screen flex font-sans bg-[#EBEEF3]">
+      {/* Entrance keyframes — kept local to this component */}
+      <style>{`
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(14px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes shake {
+          10%, 90% { transform: translateX(-1px); }
+          20%, 80% { transform: translateX(2px); }
+          30%, 50%, 70% { transform: translateX(-4px); }
+          40%, 60% { transform: translateX(4px); }
+        }
+        .anim-item {
+          opacity: 0;
+          animation: fadeSlideUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .anim-error {
+          animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both,
+            fadeIn 0.3s ease-out both;
+        }
+        .illustration-in {
+          opacity: 0;
+          animation: fadeIn 0.9s ease-out 0.1s forwards;
+        }
+      `}</style>
+
+      {/* ── LEFT — illustration ────────────────────────────────────── */}
+      <div className="hidden md:flex md:w-1/2 lg:w-[55%] items-center justify-center relative overflow-hidden">
+        <img
+          src="/LoginPage.png"
+          alt=""
+          className="illustration-in w-full h-auto max-h-[100vh] object-contain object-left"
         />
-        <div
-          className="absolute -bottom-[20%] -right-[10%] w-[70%] h-[70%] rounded-full opacity-20 blur-[100px] pointer-events-none"
-          style={{ background: "#22D3EE" }}
-        />
-
-        {/* Giant Watermark Logo */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none w-[120%] flex justify-center">
-           <img
-              src="/logo-tirta-kahuripan.svg"
-              alt="Watermark"
-              className="w-full h-auto object-contain"
-              style={{ filter: "brightness(0) invert(1)" }}
-            />
-        </div>
-
-        {/* Abstract Liquid Waves / Pattern */}
-        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: "radial-gradient(#bae6fd 1px, transparent 1px)", backgroundSize: "32px 32px" }}></div>
-
-        {/* Top left text */}
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-white/10 backdrop-blur-md border border-white/20 shadow-lg">
-            <ShieldCheck size={20} className="text-sky-300" />
-          </div>
-          <p className="text-sky-200 font-bold text-xs tracking-[0.2em] uppercase">
-            Internal Audit System
-          </p>
-        </div>
-
-        {/* Main Center Content */}
-        <div className="relative z-10 w-full flex flex-col justify-center">
-          <div className="inline-block mb-4 px-4 py-1.5 rounded-full border border-sky-400/30 bg-sky-400/10 backdrop-blur-sm w-fit">
-            <p className="text-sky-300 text-xs font-semibold tracking-wide">
-              Secure Enterprise Portal
-            </p>
-          </div>
-          <h1 className="text-5xl xl:text-6xl font-extrabold text-white leading-[1.1] mb-6 tracking-tight drop-shadow-lg">
-            SPI <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-300 to-cyan-300">SmartAudit</span>
-          </h1>
-          <p className="text-lg xl:text-xl font-medium leading-relaxed max-w-[400px]" style={{ color: "#E0F2FE" }}>
-            Sistem Informasi Audit Internal untuk <strong className="text-white">PERUMDA Air Minum Tirta Kahuripan</strong>.
-          </p>
-        </div>
-
-        {/* Footer */}
-        <div className="relative z-10 border-t border-white/10 pt-6">
-          <p className="text-sm font-medium text-sky-200/60">
-            &copy; {new Date().getFullYear()} Satuan Pengawas Internal
-          </p>
-        </div>
       </div>
 
-      {/* ── RIGHT PANEL ────────────────────────────────────── */}
-      <div className="w-full lg:w-[55%] flex flex-col items-center justify-center p-6 sm:p-12 bg-white relative">
-        <div className="w-full max-w-[400px]">
-          {/* Logo and Header */}
-          <div className="flex flex-col items-center mb-10">
-            <img
-              src="/logo-tirta-kahuripan.svg"
-              alt="Logo Tirta Kahuripan"
-              className="h-16 w-auto object-contain mb-6"
-            />
-            <h2 className="text-3xl font-extrabold text-slate-900 mb-2">
-              Selamat Datang
-            </h2>
-            <p className="text-base text-slate-500 font-medium text-center">
-              Silakan masuk dengan akun Anda
-            </p>
-          </div>
+      {/* ── RIGHT — form ───────────────────────────────────────────── */}
+      <div className="w-full md:w-1/2 lg:w-[45%] flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-[360px]">
+          {/* Title */}
+          <h1
+            className="anim-item text-[28px] font-bold text-slate-800 text-center tracking-tight mb-2"
+            style={{ animationDelay: "0.05s" }}
+          >
+            Smart Audit SPI
+          </h1>
+          <p
+            className="anim-item text-sm text-slate-400 text-center mb-11"
+            style={{ animationDelay: "0.12s" }}
+          >
+            Masuk untuk melanjutkan ke akun Anda
+          </p>
 
-          {/* Error Message */}
           {error && (
-            <div
-              className="mb-6 flex items-start gap-3 p-4 rounded-xl text-sm font-medium"
-              style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#DC2626" }}
-            >
-              <AlertCircle size={18} className="shrink-0 mt-0.5" />
-              <p className="leading-snug">{error}</p>
+            <div className="anim-error mb-6 flex items-start gap-2.5 p-3 rounded-lg text-sm bg-red-50 border border-red-100 text-red-700">
+              <AlertCircle size={16} className="shrink-0 mt-0.5" />
+              <p>{error}</p>
             </div>
           )}
 
-          {/* Login Form */}
-          <form onSubmit={handleLogin} className="space-y-5">
-            {/* Email field */}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-bold text-slate-700">
+          <form onSubmit={handleLogin}>
+            {/* Email */}
+            <div className="anim-item mb-5" style={{ animationDelay: "0.18s" }}>
+              <Label
+                htmlFor="email"
+                className="text-[13px] font-medium text-slate-600 mb-1.5 block"
+              >
                 Email
               </Label>
-              <div className="relative">
-                <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+              <div className="relative group">
+                <Mail
+                  size={17}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 transition-colors group-focus-within:text-sky-500"
+                />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="nama@pdam-kahuripan.co.id"
+                  placeholder="nama@email.com"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
-                  className="!pl-11 h-12 rounded-xl border-slate-300 bg-slate-50 focus-visible:ring-sky-600 focus-visible:ring-offset-0 focus-visible:bg-white text-base shadow-sm"
+                  className="!pl-10 h-[52px] rounded-lg border-slate-200 bg-white shadow-sm focus-visible:ring-4 focus-visible:ring-sky-500/10 focus-visible:border-sky-400 transition-all duration-200"
                 />
               </div>
             </div>
 
-            {/* Password field */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-sm font-bold text-slate-700">
-                  Password
-                </Label>
-                <a href="#" className="text-sm font-bold text-sky-700 hover:underline">
-                  Lupa password?
-                </a>
-              </div>
-              <div className="relative">
-                <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+            {/* Password */}
+            <div className="anim-item mb-2" style={{ animationDelay: "0.24s" }}>
+              <Label
+                htmlFor="password"
+                className="text-[13px] font-medium text-slate-600 mb-1.5 block"
+              >
+                Password
+              </Label>
+              <div className="relative group">
+                <Lock
+                  size={17}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 transition-colors group-focus-within:text-sky-500"
+                />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -171,44 +154,68 @@ export function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
-                  className="!pl-11 !pr-12 h-12 rounded-xl border-slate-300 bg-slate-50 focus-visible:ring-sky-600 focus-visible:ring-offset-0 focus-visible:bg-white text-base tracking-wider shadow-sm"
+                  className="!pl-10 !pr-11 h-[52px] rounded-lg border-slate-200 bg-white shadow-sm focus-visible:ring-4 focus-visible:ring-sky-500/10 focus-visible:border-sky-400 tracking-wide transition-all duration-200"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors duration-150"
                   tabIndex={-1}
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               </div>
             </div>
 
-            {/* Submit */}
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full h-12 rounded-xl text-base font-bold mt-8 shadow-lg shadow-sky-900/20 hover:shadow-sky-900/30 transition-all border-0"
-              style={{
-                background: "linear-gradient(135deg, #0C4A6E 0%, #0369A1 100%)",
-              }}
+            {/* Forgot password — right aligned, remember-me removed */}
+            <div
+              className="anim-item flex justify-end mb-5"
+              style={{ animationDelay: "0.28s" }}
             >
-              {isLoading ? (
-                <>
-                  <Loader2 size={18} className="animate-spin mr-2" />
-                  Memproses...
-                </>
-              ) : (
-                "Masuk ke Sistem"
-              )}
-            </Button>
-          </form>
-        </div>
+              <a
+                href="#"
+                className="text-[13px] font-medium text-sky-600 hover:text-sky-700 transition-colors"
+              >
+                Lupa password?
+              </a>
+            </div>
 
-        {/* Mobile footer */}
-        <p className="lg:hidden text-center text-sm font-medium text-slate-400 mt-12">
-          &copy; {new Date().getFullYear()} SPI · PERUMDA Tirta Kahuripan
-        </p>
+            {/* Submit */}
+            <div className="anim-item" style={{ animationDelay: "0.34s" }}>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-12 rounded-lg text-sm font-semibold border-0 text-white shadow-md shadow-sky-900/10 transition-all duration-200 hover:shadow-lg hover:shadow-sky-900/20 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+                style={{
+                  background: "linear-gradient(135deg, #38BDF8 0%, #0284C7 100%)",
+                }}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin mr-2" />
+                    Memproses...
+                  </>
+                ) : (
+                  "Masuk"
+                )}
+              </Button>
+            </div>
+          </form>
+
+          {/* Sign up */}
+          <p
+            className="anim-item text-center text-[13px] text-slate-500 mt-8"
+            style={{ animationDelay: "0.4s" }}
+          >
+            Belum punya akun?{" "}
+            <a
+              href="#"
+              className="text-sky-600 font-semibold hover:text-sky-700 transition-colors"
+            >
+              Daftar
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -137,7 +137,7 @@ export function CabangList() {
       cell: ({ row }) => (
         <span
           className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold"
-          style={{ background: "#E0F2FE", color: "#0369A1" }}
+          style={{ background: "#E0F2FE", color: "#0284C7" }}
         >
           {row.getValue("code")}
         </span>
@@ -148,7 +148,7 @@ export function CabangList() {
       header: "Nama Cabang",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <GitBranch size={14} style={{ color: "#0369A1" }} />
+          <GitBranch size={14} style={{ color: "#0284C7" }} />
           <span className="font-semibold text-slate-800">{row.getValue("name")}</span>
         </div>
       ),
@@ -221,14 +221,14 @@ export function CabangList() {
             <DialogTrigger asChild>
               <Button
                 className="h-9 px-4 text-sm font-semibold gap-1.5 text-white border-0"
-                style={{ background: "linear-gradient(135deg, #0C4A6E, #0369A1)" }}
+                style={{ background: "linear-gradient(135deg, #0EA5E9, #0284C7)" }}
               >
                 <Plus size={14} /> Tambah Cabang
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle className="text-lg font-bold" style={{ color: "#0C4A6E" }}>
+                <DialogTitle className="text-lg font-bold" style={{ color: "#0EA5E9" }}>
                   {editingId ? "Edit Cabang" : "Tambah Cabang Baru"}
                 </DialogTitle>
               </DialogHeader>
@@ -269,7 +269,7 @@ export function CabangList() {
                     type="submit"
                     disabled={form.formState.isSubmitting}
                     className="text-white border-0"
-                    style={{ background: "linear-gradient(135deg, #0C4A6E, #0369A1)" }}
+                    style={{ background: "linear-gradient(135deg, #0EA5E9, #0284C7)" }}
                   >
                     {form.formState.isSubmitting ? "Menyimpan..." : "Simpan"}
                   </Button>
@@ -282,7 +282,7 @@ export function CabangList() {
 
       {loading ? (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 48, gap: 12 }}>
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: "#0369A1" }} />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: "#0284C7" }} />
           <p className="text-sm text-slate-500">Memuat data cabang...</p>
         </div>
       ) : (

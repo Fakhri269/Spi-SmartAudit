@@ -55,7 +55,7 @@ export function LaporanAudit() {
   if (loading) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 400, gap: 16 }}>
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: "#0369A1" }} />
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: "#0284C7" }} />
         <p style={{ color: "#64748B", fontSize: 14 }}>Menyusun laporan audit...</p>
       </div>
     );
@@ -69,7 +69,7 @@ export function LaporanAudit() {
         className="rounded-2xl text-white relative overflow-hidden"
         style={{
           padding: 28,
-          background: "linear-gradient(135deg, #0C4A6E 0%, #075985 60%, #0369A1 100%)",
+          background: "linear-gradient(135deg, #0EA5E9 0%, #075985 60%, #0284C7 100%)",
           boxShadow: "0 8px 32px rgba(3,105,161,0.25)",
         }}
       >
@@ -104,7 +104,7 @@ export function LaporanAudit() {
               style={{
                 display: "flex", alignItems: "center", gap: 8,
                 padding: "9px 18px", borderRadius: 8, border: "none",
-                background: "rgba(255,255,255,0.95)", color: "#0369A1",
+                background: "rgba(255,255,255,0.95)", color: "#0284C7",
                 fontSize: 13, fontWeight: 700, cursor: "pointer",
               }}
               onMouseEnter={e => (e.currentTarget.style.background = "white")}
@@ -119,7 +119,7 @@ export function LaporanAudit() {
       {/* ── Summary Cards ───────────────────────────────── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
         {[
-          { label: "Total KKA", value: totalKKA, sub: `${kkaDone} selesai`, icon: BarChart2, color: "#0369A1", bg: "linear-gradient(135deg, #0C4A6E, #0369A1)", shadow: "rgba(3,105,161,0.3)" },
+          { label: "Total KKA", value: totalKKA, sub: `${kkaDone} selesai`, icon: BarChart2, color: "#0284C7", bg: "linear-gradient(135deg, #0EA5E9, #0284C7)", shadow: "rgba(3,105,161,0.3)" },
           { label: "Selesai Audit", value: `${completionRate}%`, sub: `${kkaDone} dari ${totalKKA} KKA`, icon: CheckCircle, color: "#0D9488", bg: "linear-gradient(135deg, #0F766E, #0D9488)", shadow: "rgba(13,148,136,0.3)" },
           { label: "Total Temuan", value: totalTemuan, sub: `${temuanOpen} masih open`, icon: AlertTriangle, color: "#B45309", bg: "linear-gradient(135deg, #92400E, #B45309)", shadow: "rgba(180,83,9,0.3)" },
           { label: "RTL Selesai", value: `${rtlRate}%`, sub: `${temuanClosed} dari ${totalTemuan} temuan`, icon: TrendingUp, color: "#7C3AED", bg: "linear-gradient(135deg, #5B21B6, #7C3AED)", shadow: "rgba(124,58,237,0.3)" },

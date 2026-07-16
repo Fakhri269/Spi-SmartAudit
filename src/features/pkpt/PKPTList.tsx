@@ -112,7 +112,7 @@ export function PKPTList() {
   };
 
   const columns: ColumnDef<PKPT>[] = [
-    { accessorKey: "tahun", header: "Tahun", cell: ({ row }) => <span className="font-bold text-sm" style={{ color: "#0369A1" }}>{row.getValue("tahun")}</span> },
+    { accessorKey: "tahun", header: "Tahun", cell: ({ row }) => <span className="font-bold text-sm" style={{ color: "#0284C7" }}>{row.getValue("tahun")}</span> },
     { accessorKey: "judul", header: "Judul PKPT", cell: ({ row }) => <div className="font-medium text-slate-800">{row.getValue("judul")}</div> },
     { accessorKey: "kategori", header: "Kategori" },
     {
@@ -163,7 +163,7 @@ export function PKPTList() {
 
   return (
     <div className="fade-in-up" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <div className="rounded-2xl text-white relative overflow-hidden" style={{ padding: 24, background: "linear-gradient(135deg, #0C4A6E 0%, #0369A1 100%)", boxShadow: "0 4px 20px rgba(12,74,110,0.18)" }}>
+      <div className="rounded-2xl text-white relative overflow-hidden" style={{ padding: 24, background: "linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)", boxShadow: "0 4px 20px rgba(12,74,110,0.18)" }}>
         <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full" style={{ background: "rgba(255,255,255,0.07)" }} />
         <div style={{ position: "relative", zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
@@ -182,7 +182,7 @@ export function PKPTList() {
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle className="text-lg font-bold" style={{ color: "#0C4A6E" }}>{editingId ? "Edit PKPT" : "Buat PKPT Baru"}</DialogTitle>
+                  <DialogTitle className="text-lg font-bold" style={{ color: "#0EA5E9" }}>{editingId ? "Edit PKPT" : "Buat PKPT Baru"}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-1">
                   <div className="space-y-1.5">
@@ -220,7 +220,7 @@ export function PKPTList() {
                   </div>
                   <div className="flex justify-end gap-2 pt-2">
                     <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Batal</Button>
-                    <Button type="submit" disabled={form.formState.isSubmitting} style={{ background: "linear-gradient(135deg, #0C4A6E, #0369A1)" }} className="text-white border-0">
+                    <Button type="submit" disabled={form.formState.isSubmitting} style={{ background: "linear-gradient(135deg, #0EA5E9, #0284C7)" }} className="text-white border-0">
                       {form.formState.isSubmitting ? "Menyimpan..." : "Simpan"}
                     </Button>
                   </div>
@@ -232,7 +232,7 @@ export function PKPTList() {
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         {[
-          { label: "Total PKPT", value: data.length, color: "#0369A1", bg: "#E0F2FE" },
+          { label: "Total PKPT", value: data.length, color: "#0284C7", bg: "#E0F2FE" },
           { label: "Disetujui", value: totalApproved, color: "#0D9488", bg: "#CCFBF1" },
           { label: "Review", value: totalReview, color: "#D97706", bg: "#FEF9C3" },
           { label: "Draft", value: totalDraft, color: "#64748B", bg: "#F1F5F9" },
@@ -246,7 +246,7 @@ export function PKPTList() {
       <div className="bg-white rounded-2xl overflow-hidden" style={{ border: "1px solid #DBEAFE", boxShadow: "0 2px 12px rgba(12,74,110,0.06)" }}>
         {loading ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 64, gap: 12 }}>
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: "#0369A1" }} />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: "#0284C7" }} />
             <p className="text-sm text-slate-500">Memuat data...</p>
           </div>
         ) : (
