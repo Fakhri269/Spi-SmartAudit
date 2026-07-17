@@ -299,20 +299,20 @@ export function Dashboard() {
 
   // ── Quick Stats config ──────────────────────────────────────────────────
   const STAT_CARDS = [
-    { label: "Total User",    value: stats.totalUsers,      icon: Users,         grad: "linear-gradient(135deg,#1E40AF,#3B82F6)", to: "/settings" },
-    { label: "Auditor",       value: stats.totalAuditors,   icon: UserCheck,     grad: "linear-gradient(135deg,#0E7490,#06B6D4)", to: "/master-data/auditor" },
-    { label: "Cabang",        value: stats.totalCabang,     icon: Building2,     grad: "linear-gradient(135deg,#6D28D9,#8B5CF6)", to: "/master-data/cabang" },
-    { label: "Bagian",        value: stats.totalBagian,     icon: Layers,        grad: "linear-gradient(135deg,#7C3AED,#A855F7)", to: "/master-data" },
-    { label: "Engagement",    value: stats.totalEngagement, icon: Briefcase,     grad: "linear-gradient(135deg,#0F766E,#0D9488)", to: "/" },
-    { label: "Total PKPT",    value: stats.totalPKPT,       icon: ClipboardList, grad: "linear-gradient(135deg,#1E4E8C,#1E6FCC)", to: "/pkpt" },
-    { label: "Surat Tugas",   value: stats.totalSuratTugas, icon: FileSignature, grad: "linear-gradient(135deg,#9D174D,#DB2777)", to: "/surat-tugas" },
-    { label: "Total KKA",     value: stats.totalKKA,        icon: FolderOpen,    grad: "linear-gradient(135deg,#0EA5E9,#0284C7)", to: "/kka" },
-    { label: "Temuan",        value: stats.totalTemuan,     icon: AlertTriangle, grad: "linear-gradient(135deg,#92400E,#D97706)", to: "/temuan" },
-    { label: "Total RTL",     value: stats.totalRTL,        icon: CheckCircle,   grad: "linear-gradient(135deg,#065F46,#059669)", to: "/temuan" },
-    { label: "Laporan",       value: stats.totalLaporan,    icon: FileText,      grad: "linear-gradient(135deg,#1E3A8A,#2563EB)", to: "/laporan" },
-    { label: "Total SOP",     value: 0,                     icon: BookOpen,      grad: "linear-gradient(135deg,#064E3B,#10B981)", to: "/master-data" },
-    { label: "Regulasi",      value: 0,                     icon: Shield,        grad: "linear-gradient(135deg,#1E293B,#475569)", to: "/master-data" },
-    { label: "Audit Case",    value: 0,                     icon: BarChart3,     grad: "linear-gradient(135deg,#881337,#E11D48)", to: "/" },
+    { label: "Total User",    value: stats.totalUsers,      icon: Users,         color: "#2563EB", bg: "#EFF6FF", to: "/settings" },
+    { label: "Auditor",       value: stats.totalAuditors,   icon: UserCheck,     color: "#0891B2", bg: "#ECFEFF", to: "/master-data/auditor" },
+    { label: "Cabang",        value: stats.totalCabang,     icon: Building2,     color: "#7C3AED", bg: "#F5F3FF", to: "/master-data/cabang" },
+    { label: "Bagian",        value: stats.totalBagian,     icon: Layers,        color: "#6D28D9", bg: "#F5F3FF", to: "/master-data" },
+    { label: "Engagement",    value: stats.totalEngagement, icon: Briefcase,     color: "#0D9488", bg: "#F0FDFA", to: "/" },
+    { label: "Total PKPT",    value: stats.totalPKPT,       icon: ClipboardList, color: "#1E6FCC", bg: "#EFF6FF", to: "/pkpt" },
+    { label: "Surat Tugas",   value: stats.totalSuratTugas, icon: FileSignature, color: "#DB2777", bg: "#FDF2F8", to: "/surat-tugas" },
+    { label: "Total KKA",     value: stats.totalKKA,        icon: FolderOpen,    color: "#0284C7", bg: "#F0F9FF", to: "/kka" },
+    { label: "Temuan",        value: stats.totalTemuan,     icon: AlertTriangle, color: "#D97706", bg: "#FFFBEB", to: "/temuan" },
+    { label: "Total RTL",     value: stats.totalRTL,        icon: CheckCircle,   color: "#059669", bg: "#ECFDF5", to: "/temuan" },
+    { label: "Laporan",       value: stats.totalLaporan,    icon: FileText,      color: "#2563EB", bg: "#EFF6FF", to: "/laporan" },
+    { label: "Total SOP",     value: 0,                     icon: BookOpen,      color: "#10B981", bg: "#ECFDF5", to: "/master-data" },
+    { label: "Regulasi",      value: 0,                     icon: Shield,        color: "#475569", bg: "#F8FAFC", to: "/master-data" },
+    { label: "Audit Case",    value: 0,                     icon: BarChart3,     color: "#DC2626", bg: "#FFF5F5", to: "/" },
   ] as const;
 
   const today = new Date();
@@ -321,10 +321,10 @@ export function Dashboard() {
 
   if (loading) return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "70vh", gap: 16 }}>
-      <div style={{ width: 56, height: 56, borderRadius: "50%", background: "linear-gradient(135deg,#1E6FCC,#06B6D4)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 24px rgba(30,111,204,0.3)" }}>
-        <Loader2 size={28} style={{ color: "white", animation: "spin 1s linear infinite" }} />
+      <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#EFF6FF", border: "2px solid #BFDBFE", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 size={22} style={{ color: "#2563EB", animation: "spin 1s linear infinite" }} />
       </div>
-      <p style={{ color: COLORS.muted, fontSize: 14, fontWeight: 500 }}>Memuat dashboard...</p>
+      <p style={{ color: COLORS.muted, fontSize: 14, fontWeight: 500 }}>Memuat data...</p>
     </div>
   );
 
@@ -386,14 +386,12 @@ export function Dashboard() {
             const Icon = c.icon;
             return (
               <div key={c.label} onClick={() => navigate(c.to)}
-                style={{ background: c.grad, borderRadius: 16, padding: "16px 14px", color: "white", cursor: "pointer", position: "relative", overflow: "hidden", transition: "transform 0.18s, box-shadow 0.18s", boxShadow: "0 4px 16px rgba(0,0,0,0.15)" }}
-                onMouseEnter={e => { const el = e.currentTarget as HTMLDivElement; el.style.transform = "translateY(-4px) scale(1.02)"; el.style.boxShadow = "0 12px 32px rgba(0,0,0,0.25)"; }}
-                onMouseLeave={e => { const el = e.currentTarget as HTMLDivElement; el.style.transform = "translateY(0) scale(1)"; el.style.boxShadow = "0 4px 16px rgba(0,0,0,0.15)"; }}>
-                <div style={{ position: "absolute", right: -10, top: -10, width: 56, height: 56, borderRadius: "50%", background: "rgba(255,255,255,0.1)" }} />
-                <div style={{ position: "absolute", right: 10, bottom: -14, width: 40, height: 40, borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
-                <Icon size={16} style={{ opacity: 0.9, marginBottom: 10 }} />
-                <div style={{ fontSize: 26, fontWeight: 800, lineHeight: 1, letterSpacing: "-1px" }}>{c.value}</div>
-                <div style={{ fontSize: 10, opacity: 0.85, marginTop: 6, fontWeight: 600, lineHeight: 1.3, textTransform: "uppercase", letterSpacing: "0.04em" }}>{c.label}</div>
+                style={{ background: c.bg, borderRadius: 14, padding: "16px 14px", border: `1px solid ${COLORS.border}`, cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
+                onMouseEnter={e => { const el = e.currentTarget as HTMLDivElement; el.style.transform = "translateY(-2px)"; el.style.boxShadow = "0 6px 18px rgba(0,0,0,0.08)"; }}
+                onMouseLeave={e => { const el = e.currentTarget as HTMLDivElement; el.style.transform = "translateY(0)"; el.style.boxShadow = "none"; }}>
+                <Icon size={16} style={{ color: c.color, marginBottom: 10 }} />
+                <div style={{ fontSize: 26, fontWeight: 800, lineHeight: 1, letterSpacing: "-1px", color: c.color }}>{c.value}</div>
+                <div style={{ fontSize: 10, color: COLORS.slate, marginTop: 6, fontWeight: 600, lineHeight: 1.3, textTransform: "uppercase", letterSpacing: "0.04em" }}>{c.label}</div>
               </div>
             );
           })}
@@ -531,10 +529,7 @@ export function Dashboard() {
       {/* ── Quick Actions ─────────────────────────────────────────────── */}
       <div style={card()}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg,#1E6FCC,#06B6D4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Zap size={14} style={{ color: "white" }} />
-          </div>
-          <p style={{ fontSize: 14, fontWeight: 700, color: COLORS.text }}>Quick Actions</p>
+          <p style={{ fontSize: 14, fontWeight: 700, color: COLORS.text }}>Aksi Cepat</p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {QUICK.map(a => {
@@ -556,12 +551,9 @@ export function Dashboard() {
         <div style={card()}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg,#1E6FCC,#06B6D4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Activity size={13} style={{ color: "white" }} />
-              </div>
               <p style={{ fontSize: 14, fontWeight: 700, color: COLORS.text }}>Aktivitas Terbaru</p>
             </div>
-            <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 20, background: "linear-gradient(135deg,#D1FAE5,#A7F3D0)", color: "#059669", fontWeight: 700, border: "1px solid #A7F3D0" }}>● Live</span>
+            <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 20, background: "#ECFDF5", color: "#059669", fontWeight: 600, border: "1px solid #D1FAE5" }}>Terkini</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
             {trail.slice(0, 8).map((t, i) => {
@@ -588,9 +580,6 @@ export function Dashboard() {
 
         <div style={card()}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg,#7C3AED,#A855F7)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Calendar size={13} style={{ color: "white" }} />
-            </div>
             <p style={{ fontSize: 14, fontWeight: 700, color: COLORS.text }}>Jadwal Audit</p>
           </div>
           <div style={{ background: COLORS.bg, borderRadius: 14, padding: 14, border: `1px solid ${COLORS.border}` }}>
@@ -606,7 +595,7 @@ export function Dashboard() {
                 const isToday = dayNum === today.getDate();
                 const isValid = dayNum > 0 && dayNum <= daysInMonth;
                 return (
-                  <div key={i} style={{ height: 28, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: isToday ? 700 : 400, background: isToday ? "linear-gradient(135deg,#1E6FCC,#06B6D4)" : "transparent", color: isToday ? "white" : isValid ? "#475569" : "transparent", cursor: isValid ? "pointer" : "default", boxShadow: isToday ? "0 2px 8px rgba(30,111,204,0.4)" : "none" }}>
+                  <div key={i} style={{ height: 28, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: isToday ? 700 : 400, background: isToday ? "#2563EB" : "transparent", color: isToday ? "white" : isValid ? "#475569" : "transparent", cursor: isValid ? "pointer" : "default" }}>
                     {isValid ? dayNum : ""}
                   </div>
                 );
@@ -616,7 +605,7 @@ export function Dashboard() {
               <p style={{ fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 8 }}>PKPT Aktif</p>
               {pkpts.filter(p => p.status !== "Selesai").slice(0, 3).map((p, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                  <div style={{ width: 7, height: 7, borderRadius: "50%", background: "linear-gradient(135deg,#1E6FCC,#06B6D4)", flexShrink: 0 }} />
+                  <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#2563EB", flexShrink: 0 }} />
                   <span style={{ fontSize: 12, color: COLORS.slate }}>PKPT {p.tahun} — {p.status}</span>
                 </div>
               ))}
@@ -630,11 +619,8 @@ export function Dashboard() {
       <div style={card()}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg,#1E293B,#475569)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Shield size={13} style={{ color: "white" }} />
-            </div>
             <p style={{ fontSize: 14, fontWeight: 700, color: COLORS.text }}>Audit Trail</p>
-            <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 20, background: "#EFF6FF", color: "#1E6FCC", fontWeight: 700 }}>{filteredTrail.length} records</span>
+            <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 20, background: "#F1F5F9", color: COLORS.slate, fontWeight: 600 }}>{filteredTrail.length} records</span>
           </div>
           <div style={{ position: "relative" }}>
             <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: COLORS.muted }} />

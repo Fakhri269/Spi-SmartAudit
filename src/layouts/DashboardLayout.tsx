@@ -12,6 +12,7 @@ import {
   ChevronRight,
   FileSignature,
   FolderOpen,
+  Search,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../features/auth/AuthContext";
@@ -19,6 +20,7 @@ import { AIChatWidget } from "../components/AIChatWidget";
 
 export function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const { profile, role, hasPermission, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -63,6 +65,11 @@ export function DashboardLayout() {
       ],
     },
   ].filter(g => g.items.length > 0);
+
+  const filteredNavItems = NAV_ITEMS.map(group => ({
+    ...group,
+    items: group.items.filter(item => item.label.toLowerCase().includes(searchQuery.toLowerCase()))
+  })).filter(group => group.items.length > 0);
 
   const isActive = (to: string) =>
     to === "/" ? location.pathname === "/" : location.pathname.startsWith(to);
@@ -153,8 +160,44 @@ export function DashboardLayout() {
             padding: "20px 0",
           }}
         >
-          {NAV_ITEMS.map((group, gi) => (
-            <div key={group.group} style={{ marginBottom: gi < NAV_ITEMS.length - 1 ? 8 : 0 }}>
+          {/* ── Search Bar ── */}
+          {sidebarOpen && (
+            <div style={{ padding: "0 20px", marginBottom: 16 }}>
+              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                <Search size={14} color="rgba(255,255,255,0.6)" style={{ position: "absolute", left: 10 }} />
+                <input
+                  type="text"
+                  placeholder="Cari Menu..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: "100%",
+                    height: 32,
+                    background: "rgba(255,255,255,0.1)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    borderRadius: 8,
+                    color: "white",
+                    fontSize: 13,
+                    paddingLeft: 32,
+                    paddingRight: 12,
+                    outline: "none",
+                    transition: "all 0.2s",
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.15)";
+                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.4)";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {filteredNavItems.map((group, gi) => (
+            <div key={group.group} style={{ marginBottom: gi < filteredNavItems.length - 1 ? 8 : 0 }}>
               {/* Group label */}
               <div
                 style={{
