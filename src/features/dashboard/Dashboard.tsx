@@ -29,7 +29,7 @@ const C = {
   text:    "#0F172A",
   text2:   "#475569",
   muted:   "#94A3B8",
-  border:  "#E2E8F0",
+  border:  "#CBD5E1",
   bg:      "#F8FAFC",
   card:    "#FFFFFF",
   blue:    "#2563EB",
@@ -63,7 +63,7 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
   return (
     <div style={{
       background: C.card, borderRadius: 12,
-      border: `1px solid ${C.border}`,
+      border: `2px solid ${C.border}`,
       boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
       padding: 20, ...style,
     }}>
@@ -81,7 +81,7 @@ function StatCard({ label, value, icon: Icon, color, bg, to, delta }: {
     <div
       onClick={() => navigate(to)}
       style={{
-        background: C.card, borderRadius: 12, border: `1px solid ${C.border}`,
+        background: C.card, borderRadius: 12, border: `2px solid ${C.border}`,
         padding: "16px 18px", cursor: "pointer",
         boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
         transition: "box-shadow 0.15s, transform 0.15s",
@@ -325,7 +325,7 @@ export function Dashboard() {
         <div style={{ display: "flex", gap: 8 }}>
           <button
             onClick={() => fetchAll(true)} disabled={refreshing}
-            style={{ display: "flex", alignItems: "center", gap: 6, height: 34, padding: "0 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.text2, fontSize: 12, cursor: "pointer", fontWeight: 500 }}
+            style={{ display: "flex", alignItems: "center", gap: 6, height: 34, padding: "0 14px", borderRadius: 8, border: `2px solid ${C.border}`, background: C.card, color: C.text2, fontSize: 12, cursor: "pointer", fontWeight: 500 }}
           >
             <RefreshCw size={13} style={{ animation: refreshing ? "spin 1s linear infinite" : "none" }} />
             Refresh
@@ -390,7 +390,7 @@ export function Dashboard() {
                 onClick={() => navigate(c.to)}
                 style={{
                   background: c.bg, borderRadius: 10, padding: "14px 12px",
-                  cursor: "pointer", border: `1px solid ${C.border}`,
+                  cursor: "pointer", border: `2px solid ${C.border}`,
                   transition: "transform 0.15s, box-shadow 0.15s",
                 }}
                 onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 12px rgba(0,0,0,0.07)"; }}
@@ -427,7 +427,7 @@ export function Dashboard() {
               <div key={c.label}
                 onClick={() => navigate("/temuan")}
                 style={{
-                  background: c.bg, border: `1px solid ${c.border}`, borderRadius: 10,
+                  background: c.bg, border: `2px solid ${c.border}`, borderRadius: 10,
                   padding: "14px 16px", display: "flex", alignItems: "center", gap: 12,
                   cursor: "pointer", transition: "transform 0.12s, box-shadow 0.12s",
                 }}
@@ -521,7 +521,7 @@ export function Dashboard() {
             return (
               <div key={c.label} onClick={() => navigate("/temuan")}
                 style={{
-                  background: c.bg, border: `1px solid ${c.border}`, borderRadius: 10,
+                  background: c.bg, border: `2px solid ${c.border}`, borderRadius: 10,
                   padding: "14px 14px", cursor: "pointer",
                   transition: "transform 0.12s, box-shadow 0.12s",
                 }}
@@ -563,7 +563,7 @@ export function Dashboard() {
                 style={{
                   display: "flex", alignItems: "center", gap: 6,
                   padding: "8px 13px", borderRadius: 8,
-                  border: `1px solid ${C.border}`, background: C.bg,
+                  border: `2px solid ${C.border}`, background: C.bg,
                   color: C.text2, fontSize: 12, fontWeight: 500, cursor: "pointer",
                   transition: "all 0.15s",
                 }}
