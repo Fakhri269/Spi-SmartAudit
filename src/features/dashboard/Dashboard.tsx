@@ -368,6 +368,9 @@ export function Dashboard() {
         ))}
       </div>
 
+      {/* ── DIVIDER ── */}
+      <div style={{ height: 1, background: C.border, margin: "8px 0" }} />
+
       {/* ── Stats Row ───────────────────────────────────────────────────── */}
       <div>
         <SectionLabel>Data Master & Operasional</SectionLabel>
@@ -401,6 +404,9 @@ export function Dashboard() {
           })}
         </div>
       </div>
+
+      {/* ── DIVIDER ── */}
+      <div style={{ height: 1, background: C.border, margin: "8px 0" }} />
 
       {/* ── Temuan Analytics ────────────────────────────────────────────── */}
       <div>
@@ -440,6 +446,9 @@ export function Dashboard() {
           })}
         </div>
       </div>
+
+      {/* ── DIVIDER ── */}
+      <div style={{ height: 1, background: C.border, margin: "8px 0" }} />
 
       {/* ── Charts Row 1 ────────────────────────────────────────────────── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 280px", gap: 14 }}>
@@ -493,6 +502,9 @@ export function Dashboard() {
         </Card>
       </div>
 
+      {/* ── DIVIDER ── */}
+      <div style={{ height: 1, background: C.border, margin: "8px 0" }} />
+
       {/* ── RTL Section ─────────────────────────────────────────────────── */}
       <div>
         <SectionLabel>Tindak Lanjut Rekomendasi (RTL)</SectionLabel>
@@ -525,9 +537,13 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* ── Quick Actions ────────────────────────────────────────────────── */}
-      <Card>
-        <p style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 14 }}>Aksi Cepat</p>
+      {/* ── DIVIDER ── */}
+      <div style={{ height: 1, background: C.border, margin: "8px 0" }} />
+
+      {/* ── Quick Actions & Audit Trail ──────────────────────────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 24 }}>
+        <Card>
+          <p style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 14 }}>Aksi Cepat</p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {[
             { label: "Tambah PKPT",     icon: ClipboardList, to: "/pkpt" },
@@ -633,6 +649,7 @@ export function Dashboard() {
           </button>
         )}
       </Card>
+      </div>
 
     </div>
   );
