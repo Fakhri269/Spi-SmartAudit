@@ -33,7 +33,7 @@ const T = {
   text:    "#0F172A",
   text2:   "#475569",
   muted:   "#94A3B8",
-  border:  "#CBD5E1",
+  border:  "#E2E8F0",
   bg:      "#F8FAFC",
   card:    "#FFFFFF",
   blue:    "#2563EB",
@@ -149,16 +149,16 @@ function Section({ title, subtitle, children, delay = 0, actions }: {
 }) {
   return (
     <div style={{
-      background: T.card, borderRadius: 14, border: `2px solid ${T.border}`,
-      boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-      padding: "22px 24px",
+      background: T.card, borderRadius: 16, border: `1px solid ${T.border}`,
+      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.03)",
+      padding: "24px",
       animation: `fadeInUp 0.5s ease ${delay}s both`,
     }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: subtitle ? 4 : 18 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 700, color: T.text, margin: 0 }}>{title}</h2>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: subtitle ? 6 : 20 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 700, color: T.text, margin: 0 }}>{title}</h2>
         {actions}
       </div>
-      {subtitle && <p style={{ fontSize: 12, color: T.muted, marginBottom: 18, marginTop: 0 }}>{subtitle}</p>}
+      {subtitle && <p style={{ fontSize: 13, color: T.muted, marginBottom: 20, marginTop: 0 }}>{subtitle}</p>}
       {children}
     </div>
   );
@@ -404,8 +404,9 @@ export function Dashboard() {
             style={{
               display: "flex", alignItems: "center", gap: 6, height: 36,
               padding: "0 16px", borderRadius: 9,
-              border: `2px solid ${T.border}`, background: T.card,
+              border: `1px solid ${T.border}`, background: T.card,
               color: T.text2, fontSize: 12.5, cursor: "pointer", fontWeight: 600,
+              boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
             }}
           >
             <RefreshCw size={13} style={{ animation: refreshing ? "spin 1s linear infinite" : "none" }} />
@@ -439,8 +440,9 @@ export function Dashboard() {
               <div key={c.label} className="dash-card"
                 onClick={() => navigate(c.to)}
                 style={{
-                  background: T.card, borderRadius: 12, border: `2px solid ${T.border}`,
+                  background: T.card, borderRadius: 12, border: `1px solid ${T.border}`,
                   padding: "18px 20px", cursor: "pointer",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
                   animation: `fadeInUp 0.4s ease ${0.1 + i * 0.06}s both`,
                 }}
               >
@@ -506,8 +508,9 @@ export function Dashboard() {
               <div key={c.label} className="dash-card"
                 onClick={() => navigate(c.to)}
                 style={{
-                  background: c.bg, borderRadius: 10, padding: "14px 12px",
-                  cursor: "pointer", border: `2px solid ${T.border}`,
+                  background: c.bg, borderRadius: 12, padding: "16px 14px",
+                  cursor: "pointer", border: `1px solid ${c.bg === "#FFFFFF" ? T.border : "transparent"}`,
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
                   animation: `scaleIn 0.35s ease ${0.3 + i * 0.04}s both`,
                 }}
               >
@@ -540,9 +543,9 @@ export function Dashboard() {
               <div key={c.label} className="dash-card"
                 onClick={() => navigate("/temuan")}
                 style={{
-                  background: c.bg, border: `2px solid ${c.bd}`, borderRadius: 10,
-                  padding: "14px 16px", display: "flex", alignItems: "center", gap: 12,
-                  cursor: "pointer",
+                  background: c.bg, border: `1px solid ${c.bd}`, borderRadius: 12,
+                  padding: "16px 18px", display: "flex", alignItems: "center", gap: 14,
+                  cursor: "pointer", boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
                   animation: `fadeInUp 0.35s ease ${0.4 + i * 0.04}s both`,
                 }}
               >
@@ -625,8 +628,8 @@ export function Dashboard() {
               <div key={c.label} className="dash-card"
                 onClick={() => navigate("/temuan")}
                 style={{
-                  background: c.bg, border: `2px solid ${c.bd}`, borderRadius: 10,
-                  padding: "14px", cursor: "pointer",
+                  background: c.bg, border: `1px solid ${c.bd}`, borderRadius: 12,
+                  padding: "16px", cursor: "pointer", boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
                   animation: `scaleIn 0.35s ease ${0.75 + i * 0.04}s both`,
                 }}
               >
@@ -661,10 +664,11 @@ export function Dashboard() {
               <button key={a.label} className="dash-btn"
                 onClick={() => navigate(a.to)}
                 style={{
-                  display: "flex", alignItems: "center", gap: 7,
-                  padding: "9px 14px", borderRadius: 9,
-                  border: `2px solid ${T.border}`, background: T.bg,
-                  color: T.text2, fontSize: 12.5, fontWeight: 500, cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "10px 16px", borderRadius: 10,
+                  border: `1px solid ${T.border}`, background: T.card,
+                  color: T.text2, fontSize: 13, fontWeight: 500, cursor: "pointer",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
                   animation: `fadeIn 0.3s ease ${0.85 + i * 0.03}s both`,
                 }}
               >
@@ -704,12 +708,12 @@ export function Dashboard() {
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ borderBottom: `2px solid ${T.border}` }}>
+              <tr style={{ borderBottom: `1px solid ${T.border}`, background: "#F8FAFC" }}>
                 {["Waktu","User","Modul","Aksi","Dokumen","IP"].map(h => (
                   <th key={h} style={{
-                    fontSize: 10.5, fontWeight: 700, color: T.muted, padding: "8px 10px",
+                    fontSize: 11, fontWeight: 700, color: T.text2, padding: "12px 14px",
                     textAlign: "left", whiteSpace: "nowrap", textTransform: "uppercase",
-                    letterSpacing: "0.06em",
+                    letterSpacing: "0.05em",
                   }}>{h}</th>
                 ))}
               </tr>
